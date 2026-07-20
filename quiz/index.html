@@ -84,6 +84,11 @@
         <button class="btn-p" onclick="createSession()">새 퀴즈 만들기</button>
       </div>
       <div id="my-sessions" class="mt"></div>
+      <p class="sub mt" style="margin-bottom:6px">다른 브라우저에서 만든 퀴즈을(를) 코드로 열기</p>
+      <div class="row">
+        <input type="text" id="host-code" class="grow" maxlength="4" placeholder="코드 4자리" style="text-transform:uppercase">
+        <button class="btn-o" onclick="hostByCode()">진행자로 열기</button>
+      </div>
     </div>
     <div class="card">
       <h2>참여자</h2>
@@ -206,6 +211,18 @@ function renderMySessions(){
         <button class="btn-sm" style="background:#fff;color:var(--danger);border:none;border-left:1.5px solid var(--line);border-radius:0" onclick="delSession('${esc(e.c)}')">✕</button>
       </span>`).join('')
     : '';
+}
+function hostByCode(){
+  const c=$('host-code').value.trim().toUpperCase();
+  if(c.length!==4){ toast('코드 4자리를 입력하세요'); return; }
+  db.ref('sessions/'+c+'/created').get().then(s=>{
+    if(!s.exists()){ toast('퀴즈을(를) 찾을 수 없습니다'); return; }
+    db.ref('sessions/'+c+'/name').get().then(ns=>{
+      const mine=myList();
+      if(!mine.some(e=>e.c===c)){ mine.unshift({c:c, n:ns.val()||''}); saveList(mine); }
+      openHost(c);
+    });
+  });
 }
 function delSession(c){
   if(!confirm(c+' 퀴즈와 모든 기록을 삭제할까요?')) return;
