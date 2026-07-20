@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>라이브 투표</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --sub:#6b7280;
+    --accent:#3b5bdb; --accent2:#12b886; --danger:#e03131; --line:#e5e8f0;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Apple SD Gothic Neo','Malgun Gothic',Pretendard,sans-serif; background:var(--bg); color:var(--ink); min-height:100vh;}
+  .wrap{max-width:860px; margin:0 auto; padding:20px 16px 60px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(20,30,60,.05);}
+  h1{font-size:1.5rem; margin-bottom:6px;}
+  h2{font-size:1.15rem; margin-bottom:12px;}
+  .sub{color:var(--sub); font-size:.9rem;}
+  button{font:inherit; cursor:pointer; border:none; border-radius:10px; padding:12px 18px; font-weight:600;}
+  .btn-p{background:var(--accent); color:#fff;}
+  .btn-g{background:var(--accent2); color:#fff;}
+  .btn-o{background:#fff; color:var(--ink); border:1.5px solid var(--line);}
+  .btn-sm{padding:7px 12px; font-size:.85rem; border-radius:8px;}
+  .btn-danger{background:#fff; color:var(--danger); border:1.5px solid #ffc9c9;}
+  button:disabled{opacity:.45; cursor:not-allowed;}
+  input[type=text],textarea,select{font:inherit; width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; background:#fff;}
+  input:focus,textarea:focus{outline:2px solid var(--accent); border-color:transparent;}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .grow{flex:1; min-width:140px;}
+  .hidden{display:none !important;}
+  .code-big{font-size:2.6rem; font-weight:800; letter-spacing:.15em; color:var(--accent);}
+  #qrbox{background:#fff; padding:10px; border-radius:10px; display:inline-block;}
+  .opt-btn{display:block; width:100%; text-align:left; margin-bottom:10px; padding:16px; font-size:1.05rem; background:#fff; border:2px solid var(--line); border-radius:12px; transition:.15s;}
+  .opt-btn:hover{border-color:var(--accent);}
+  .opt-btn.sel{border-color:var(--accent); background:#edf2ff;}
+  .bar-row{margin-bottom:12px;}
+  .bar-label{display:flex; justify-content:space-between; font-size:.95rem; margin-bottom:4px;}
+  .bar-track{background:#eef0f6; border-radius:8px; height:26px; overflow:hidden;}
+  .bar-fill{height:100%; border-radius:8px; background:var(--accent); transition:width .4s; min-width:2px;}
+  .bar-fill.c1{background:#12b886;} .bar-fill.c2{background:#fd7e14;} .bar-fill.c3{background:#be4bdb;}
+  .bar-fill.c4{background:#e64980;} .bar-fill.c5{background:#15aabf;}
+  .cloud{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:center; padding:18px 6px; min-height:120px;}
+  .cloud span{line-height:1.1; font-weight:700;}
+  .q-item{border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px; display:flex; gap:12px; align-items:flex-start;}
+  .q-text{flex:1; word-break:break-word;}
+  .like-btn{background:#fff; border:1.5px solid var(--line); border-radius:20px; padding:5px 12px; font-size:.85rem; white-space:nowrap;}
+  .like-btn.liked{border-color:var(--danger); color:var(--danger);}
+  .act-item{border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px;}
+  .act-item.live{border-color:var(--accent2); box-shadow:0 0 0 2px #c3fae8;}
+  .badge{font-size:.72rem; padding:3px 8px; border-radius:20px; background:#eef0f6; color:var(--sub); font-weight:700;}
+  .badge.live{background:#12b886; color:#fff;}
+  .center{text-align:center;}
+  .mt{margin-top:14px;} .mb{margin-bottom:14px;}
+  .waiting{font-size:1.2rem; color:var(--sub); text-align:center; padding:50px 0;}
+  #toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 20px; border-radius:24px; font-size:.9rem; opacity:0; transition:.3s; pointer-events:none; z-index:50;}
+  #toast.show{opacity:1;}
+  .result-title{font-size:1.35rem; font-weight:800; margin-bottom:16px;}
+  @media(max-width:600px){ .code-big{font-size:2rem;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 설정 안내 -->
+  <div id="scr-config" class="card hidden">
+    <h1>초기 설정 필요</h1>
+    <p class="sub mt">이 파일 하단 <b>firebaseConfig</b> 부분에 Firebase 설정값을 붙여넣어야 합니다.
+    함께 있는 <b>설치가이드.md</b>를 따라 5분이면 끝납니다.</p>
+  </div>
+
+  <!-- 홈 -->
+  <div id="scr-home" class="hidden">
+    <div class="card center">
+      <h1>라이브 투표</h1>
+      <p class="sub">찬반 투표 · 객관식 · 워드클라우드 · Q&amp;A</p>
+    </div>
+    <div class="card">
+      <h2>진행자</h2>
+      <button class="btn-p" onclick="createSession()">새 세션 만들기</button>
+      <div id="my-sessions" class="mt"></div>
+    </div>
+    <div class="card">
+      <h2>참여자</h2>
+      <div class="row">
+        <input type="text" id="join-code" class="grow" placeholder="세션 코드 4자리" maxlength="4" style="text-transform:uppercase">
+        <button class="btn-g" onclick="joinByInput()">참여</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 진행자 화면 -->
+  <div id="scr-host" class="hidden">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <p class="sub">참여 코드</p>
+          <div class="code-big" id="h-code"></div>
+          <p class="sub" id="h-link" style="word-break:break-all"></p>
+        </div>
+        <div id="qrbox"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>새 활동 만들기</h2>
+      <div class="row mb">
+        <select id="new-type" class="grow" onchange="onTypeChange()">
+          <option value="poll2">찬반 투표</option>
+          <option value="poll">객관식 투표</option>
+          <option value="cloud">워드클라우드</option>
+          <option value="qna">Q&amp;A</option>
+        </select>
+      </div>
+      <input type="text" id="new-title" placeholder="질문 / 제목 입력" style="margin-bottom:10px">
+      <textarea id="new-opts" rows="3" placeholder="선택지 (한 줄에 하나)" style="margin-bottom:10px">찬성&#10;반대</textarea>
+      <button class="btn-p" onclick="addActivity()">추가</button>
+    </div>
+
+    <div class="card">
+      <h2>활동 목록</h2>
+      <p class="sub mb">「시작」을 누르면 참여자 화면에 해당 활동이 표시됩니다.</p>
+      <div id="act-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>실시간 결과 <span class="badge live" id="live-badge" style="display:none">LIVE</span></h2>
+      <div id="h-results"><p class="waiting">진행 중인 활동이 없습니다</p></div>
+    </div>
+  </div>
+
+  <!-- 참여자 화면 -->
+  <div id="scr-part" class="hidden">
+    <div class="card">
+      <p class="sub">세션 <b id="p-code"></b></p>
+      <div id="p-body"><p class="waiting">진행자가 활동을 시작하면 여기에 표시됩니다…</p></div>
+    </div>
+  </div>
+
+</div>
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   ① 여기에 Firebase 설정 붙여넣기  (설치가이드.md 참고)
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyDQliLYNv26KCVwnNhjNNuK5mb0OPwooqs",
+  authDomain: "reading-discussion-2f802.firebaseapp.com",
+  databaseURL: "https://reading-discussion-2f802-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "reading-discussion-2f802"
+};
+/* ============================================================ */
+
+let db=null, code=null, isHost=false, actListener=null, curListener=null, resListener=null;
+const $=id=>document.getElementById(id);
+const CHARS="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const clientId = localStorage.lv_cid || (localStorage.lv_cid = Math.random().toString(36).slice(2,10));
+const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+function show(id){ ['scr-config','scr-home','scr-host','scr-part'].forEach(s=>$(s).classList.add('hidden')); $(id).classList.remove('hidden'); }
+function ref(p){ return db.ref('sessions/'+code+(p?'/'+p:'')); }
+function baseUrl(){ return location.origin + location.pathname; }
+
+/* ---------- 시작 ---------- */
+window.addEventListener('load', ()=>{
+  if(!firebaseConfig.databaseURL){ show('scr-config'); return; }
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  const p = new URLSearchParams(location.search);
+  if(p.get('s')) joinSession(p.get('s').toUpperCase());
+  else { renderMySessions(); show('scr-home'); }
+});
+
+/* ---------- 홈 ---------- */
+function renderMySessions(){
+  const mine = JSON.parse(localStorage.lv_mine||'[]');
+  $('my-sessions').innerHTML = mine.length
+    ? '<p class="sub" style="margin-bottom:6px">내 세션 다시 열기</p>' +
+      mine.map(c=>`<button class="btn-o btn-sm" style="margin:0 6px 6px 0" onclick="openHost('${esc(c)}')">${esc(c)}</button>`).join('')
+    : '';
+}
+function createSession(){
+  code = Array.from({length:4},()=>CHARS[Math.floor(Math.random()*CHARS.length)]).join('');
+  ref().set({ created: firebase.database.ServerValue.TIMESTAMP, current: null })
+    .then(()=>{
+      const mine = JSON.parse(localStorage.lv_mine||'[]');
+      if(!mine.includes(code)){ mine.unshift(code); localStorage.lv_mine = JSON.stringify(mine.slice(0,8)); }
+      openHost(code);
+    })
+    .catch(e=>toast('오류: '+e.message));
+}
+function openHost(c){
+  code=c; isHost=true;
+  $('h-code').textContent = code;
+  const url = baseUrl()+'?s='+code;
+  $('h-link').textContent = url;
+  $('qrbox').innerHTML='';
+  new QRCode($('qrbox'), {text:url, width:140, height:140});
+  listenActivities(); listenCurrent();
+  show('scr-host');
+}
+function joinByInput(){
+  const c = $('join-code').value.trim().toUpperCase();
+  if(c.length!==4){ toast('코드 4자리를 입력하세요'); return; }
+  joinSession(c);
+}
+function joinSession(c){
+  db.ref('sessions/'+c+'/created').get().then(s=>{
+    if(!s.exists()){ toast('세션을 찾을 수 없습니다'); show('scr-home'); return; }
+    code=c; isHost=false;
+    $('p-code').textContent=code;
+    listenCurrent();
+    show('scr-part');
+  });
+}
+
+/* ---------- 활동 생성 (진행자) ---------- */
+function onTypeChange(){
+  const t=$('new-type').value;
+  $('new-opts').classList.toggle('hidden', !(t==='poll'||t==='poll2'));
+  if(t==='poll2') $('new-opts').value='찬성\n반대';
+  else if(t==='poll' && $('new-opts').value==='찬성\n반대') $('new-opts').value='';
+}
+function addActivity(){
+  const t=$('new-type').value, title=$('new-title').value.trim();
+  if(!title){ toast('질문/제목을 입력하세요'); return; }
+  const act={ type:(t==='poll2'?'poll':t), title, ts:firebase.database.ServerValue.TIMESTAMP };
+  if(t==='poll'||t==='poll2'){
+    const opts=$('new-opts').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    if(opts.length<2){ toast('선택지를 2개 이상 입력하세요'); return; }
+    act.options=opts;
+  }
+  ref('activities').push(act).then(()=>{ $('new-title').value=''; toast('추가되었습니다'); });
+}
+
+/* ---------- 활동 목록 (진행자) ---------- */
+let acts={}, currentId=null;
+function listenActivities(){
+  if(actListener) actListener.off();
+  actListener = ref('activities');
+  actListener.on('value', s=>{ acts=s.val()||{}; renderActList(); });
+}
+function listenCurrent(){
+  if(curListener) curListener.off();
+  curListener = ref('current');
+  curListener.on('value', s=>{
+    currentId=s.val();
+    if(isHost){ renderActList(); hostResults(); }
+    else partBody();
+  });
+}
+const TYPE_LABEL={poll:'투표', cloud:'워드클라우드', qna:'Q&A'};
+function renderActList(){
+  const ids=Object.keys(acts);
+  $('act-list').innerHTML = ids.length? ids.map(id=>{
+    const a=acts[id], live=(id===currentId);
+    return `<div class="act-item ${live?'live':''}">
+      <div class="row" style="justify-content:space-between">
+        <div class="grow"><span class="badge ${live?'live':''}">${live?'LIVE':TYPE_LABEL[a.type]}</span>
+          <b style="margin-left:6px">${esc(a.title)}</b></div>
+        <div>
+          ${live ? `<button class="btn-o btn-sm" onclick="setCurrent(null)">중지</button>`
+                 : `<button class="btn-g btn-sm" onclick="setCurrent('${id}')">시작</button>`}
+          <button class="btn-danger btn-sm" onclick="delAct('${id}')">삭제</button>
+        </div>
+      </div></div>`;
+  }).join('') : '<p class="sub">아직 활동이 없습니다.</p>';
+}
+function setCurrent(id){ ref('current').set(id); }
+function delAct(id){
+  if(!confirm('이 활동과 응답을 삭제할까요?')) return;
+  if(id===currentId) ref('current').set(null);
+  ref('activities/'+id).remove(); ref('responses/'+id).remove();
+}
+
+/* ---------- 실시간 결과 (진행자) ---------- */
+function hostResults(){
+  if(resListener) resListener.off();
+  const box=$('h-results');
+  $('live-badge').style.display = currentId? 'inline-block':'none';
+  if(!currentId){ box.innerHTML='<p class="waiting">진행 중인 활동이 없습니다</p>'; return; }
+  const a=acts[currentId]; if(!a) return;
+  resListener = ref('responses/'+currentId);
+  resListener.on('value', s=>{ box.innerHTML = `<div class="result-title">${esc(a.title)}</div>` + renderResult(a, s.val()||{}, true); });
+}
+
+/* ---------- 참여자 ---------- */
+let partResListener=null;
+function partBody(){
+  if(partResListener){ partResListener.off(); partResListener=null; }
+  const box=$('p-body');
+  if(!currentId){ box.innerHTML='<p class="waiting">진행자가 활동을 시작하면 여기에 표시됩니다…</p>'; return; }
+  ref('activities/'+currentId).get().then(s=>{
+    const a=s.val(); if(!a) return;
+    if(a.type==='poll') partPoll(a);
+    else if(a.type==='cloud') partCloud(a);
+    else if(a.type==='qna') partQna(a);
+  });
+}
+function partPoll(a){
+  const box=$('p-body'), myVote = localStorage['lv_v_'+currentId];
+  box.innerHTML = `<div class="result-title">${esc(a.title)}</div>` +
+    a.options.map((o,i)=>`<button class="opt-btn ${String(i)===myVote?'sel':''}" onclick="vote(${i})">${esc(o)}</button>`).join('') +
+    `<div id="p-res" class="mt"></div>`;
+  if(myVote!==undefined){
+    partResListener = ref('responses/'+currentId);
+    partResListener.on('value', s=>{ const el=$('p-res'); if(el) el.innerHTML = renderResult(a, s.val()||{}, false); });
+  }
+}
+function vote(i){
+  ref('responses/'+currentId+'/votes/'+clientId).set(i).then(()=>{
+    localStorage['lv_v_'+currentId]=String(i);
+    partBody(); toast('제출되었습니다');
+  });
+}
+function partCloud(a){
+  const box=$('p-body');
+  box.innerHTML = `<div class="result-title">${esc(a.title)}</div>
+    <div class="row"><input type="text" id="cw" class="grow" maxlength="20" placeholder="단어 입력 (최대 20자)">
+    <button class="btn-g" onclick="sendWord()">보내기</button></div>
+    <div id="p-res" class="mt"></div>`;
+  $('cw').addEventListener('keydown', e=>{ if(e.key==='Enter') sendWord(); });
+  partResListener = ref('responses/'+currentId+'/words');
+  partResListener.on('value', s=>{ const el=$('p-res'); if(el) el.innerHTML = renderCloud(s.val()||{}); });
+}
+function sendWord(){
+  const w=$('cw').value.trim(); if(!w) return;
+  ref('responses/'+currentId+'/words').push(w.slice(0,20));
+  $('cw').value=''; toast('제출되었습니다');
+}
+function partQna(a){
+  const box=$('p-body');
+  box.innerHTML = `<div class="result-title">${esc(a.title)}</div>
+    <textarea id="qt" rows="2" maxlength="300" placeholder="질문을 입력하세요"></textarea>
+    <button class="btn-g mt" onclick="sendQ()" style="margin-top:8px">질문 보내기</button>
+    <div id="p-res" class="mt"></div>`;
+  partResListener = ref('responses/'+currentId+'/qna');
+  partResListener.on('value', s=>{ const el=$('p-res'); if(el) el.innerHTML = renderQna(s.val()||{}, true); });
+}
+function sendQ(){
+  const t=$('qt').value.trim(); if(!t) return;
+  ref('responses/'+currentId+'/qna').push({text:t.slice(0,300), ts:firebase.database.ServerValue.TIMESTAMP});
+  $('qt').value=''; toast('질문이 등록되었습니다');
+}
+function toggleLike(qid){
+  const r = ref('responses/'+currentId+'/qna/'+qid+'/likes/'+clientId);
+  r.get().then(s=> s.exists()? r.remove() : r.set(true));
+}
+
+/* ---------- 공통 렌더링 ---------- */
+function renderResult(a, data, big){
+  if(a.type==='poll'){
+    const votes=data.votes||{}, counts=a.options.map(()=>0);
+    Object.values(votes).forEach(v=>{ if(counts[v]!==undefined) counts[v]++; });
+    const total=counts.reduce((x,y)=>x+y,0)||0;
+    return `<p class="sub mb">응답 ${total}명</p>` + a.options.map((o,i)=>{
+      const pct= total? Math.round(counts[i]/total*100):0;
+      return `<div class="bar-row"><div class="bar-label"><span>${esc(o)}</span><b>${counts[i]}표 (${pct}%)</b></div>
+        <div class="bar-track"><div class="bar-fill c${i%6}" style="width:${pct}%"></div></div></div>`;
+    }).join('');
+  }
+  if(a.type==='cloud') return renderCloud(data.words||{});
+  if(a.type==='qna') return renderQna(data.qna||{}, !big);
+  return '';
+}
+function renderCloud(words){
+  const freq={};
+  Object.values(words).forEach(w=>{ const k=String(w).trim(); if(k) freq[k]=(freq[k]||0)+1; });
+  const keys=Object.keys(freq);
+  if(!keys.length) return '<p class="waiting">아직 제출된 단어가 없습니다</p>';
+  const max=Math.max(...keys.map(k=>freq[k]));
+  const colors=['#3b5bdb','#12b886','#fd7e14','#be4bdb','#e64980','#15aabf','#f59f00'];
+  keys.sort(()=>Math.random()-.5);
+  return '<div class="cloud">'+keys.map((k,i)=>{
+    const size=(0.9+2.2*(freq[k]/max)).toFixed(2);
+    return `<span style="font-size:${size}rem;color:${colors[i%colors.length]}">${esc(k)}</span>`;
+  }).join('')+'</div>';
+}
+function renderQna(qna, likable){
+  const ids=Object.keys(qna);
+  if(!ids.length) return '<p class="waiting">아직 질문이 없습니다</p>';
+  ids.sort((x,y)=>{
+    const lx=Object.keys(qna[x].likes||{}).length, ly=Object.keys(qna[y].likes||{}).length;
+    return ly-lx || (qna[x].ts||0)-(qna[y].ts||0);
+  });
+  return ids.map(id=>{
+    const q=qna[id], n=Object.keys(q.likes||{}).length, mine=q.likes&&q.likes[clientId];
+    const btn = likable
+      ? `<button class="like-btn ${mine?'liked':''}" onclick="toggleLike('${id}')">♥ ${n}</button>`
+      : `<span class="like-btn">♥ ${n}</span>`;
+    return `<div class="q-item"><div class="q-text">${esc(q.text)}</div>${btn}</div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
