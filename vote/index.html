@@ -147,10 +147,10 @@
    ① 여기에 Firebase 설정 붙여넣기  (설치가이드.md 참고)
    ============================================================ */
 const firebaseConfig = {
-  apiKey: "",
-  authDomain: "",
-  databaseURL: "",   // ← 반드시 필요 (Realtime Database URL)
-  projectId: ""
+  apiKey: "AIzaSyDQliLYNv26KCVwnNhjNNuK5mb0OPwooqs",
+  authDomain: "reading-discussion-2f802.firebaseapp.com",
+  databaseURL: "https://reading-discussion-2f802-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "reading-discussion-2f802"
 };
 /* ============================================================ */
 
@@ -319,7 +319,7 @@ function vote(i){
 function partCloud(a){
   const box=$('p-body');
   box.innerHTML = `<div class="result-title">${esc(a.title)}</div>
-    <div class="row"><input type="text" id="cw" class="grow" maxlength="20" placeholder="단어 입력 (최대 20자)">
+    <div class="row"><input type="text" id="cw" class="grow" maxlength="20" placeholder="단어 입력 (기기당 3개, 20자)">
     <button class="btn-g" onclick="sendWord()">보내기</button></div>
     <div id="p-res" class="mt"></div>`;
   $('cw').addEventListener('keydown', e=>{ if(e.key==='Enter') sendWord(); });
@@ -328,8 +328,12 @@ function partCloud(a){
 }
 function sendWord(){
   const w=$('cw').value.trim(); if(!w) return;
-  ref('responses/'+currentId+'/words').push(w.slice(0,20));
-  $('cw').value=''; toast('제출되었습니다');
+  const key='lv_w_'+currentId, n=parseInt(localStorage[key]||'0');
+  if(n>=3){ toast('기기당 최대 3개까지 제출할 수 있습니다'); return; }
+  ref('responses/'+currentId+'/words/'+clientId).push(w.slice(0,20)).then(()=>{
+    localStorage[key]=String(n+1);
+    $('cw').value=''; toast('제출되었습니다 ('+(n+1)+'/3)');
+  });
 }
 function partQna(a){
   const box=$('p-body');
@@ -368,7 +372,11 @@ function renderResult(a, data, big){
 }
 function renderCloud(words){
   const freq={};
-  Object.values(words).forEach(w=>{ const k=String(w).trim(); if(k) freq[k]=(freq[k]||0)+1; });
+  Object.values(words).forEach(v=>{
+    (typeof v==='object' && v!==null ? Object.values(v) : [v]).forEach(w=>{
+      const k=String(w).trim(); if(k) freq[k]=(freq[k]||0)+1;
+    });
+  });
   const keys=Object.keys(freq);
   if(!keys.length) return '<p class="waiting">아직 제출된 단어가 없습니다</p>';
   const max=Math.max(...keys.map(k=>freq[k]));
