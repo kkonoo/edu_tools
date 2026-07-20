@@ -79,7 +79,10 @@
     </div>
     <div class="card">
       <h2>진행자</h2>
-      <button class="btn-p" onclick="createSession()">새 퀴즈 만들기</button>
+      <div class="row">
+        <input type="text" id="sess-name" class="grow" maxlength="30" placeholder="퀴즈 이름 (예: 3주차 복습)">
+        <button class="btn-p" onclick="createSession()">새 퀴즈 만들기</button>
+      </div>
       <div id="my-sessions" class="mt"></div>
     </div>
     <div class="card">
@@ -96,6 +99,7 @@
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <div>
+          <p id="h-name" style="font-weight:700"></p>
           <p class="sub">참여 코드</p>
           <div class="code-big" id="h-code"></div>
           <p class="sub" id="h-link" style="word-break:break-all"></p>
@@ -191,25 +195,39 @@ window.addEventListener('load', ()=>{
 });
 
 /* ---------- 홈 ---------- */
+function myList(){ return JSON.parse(localStorage.qz_mine||'[]').map(e=> typeof e==='string'? {c:e,n:''}:e); }
+function saveList(l){ localStorage.qz_mine=JSON.stringify(l.slice(0,20)); }
 function renderMySessions(){
-  const mine = JSON.parse(localStorage.qz_mine||'[]');
+  const mine = myList();
   $('my-sessions').innerHTML = mine.length
     ? '<p class="sub" style="margin-bottom:6px">내 퀴즈 다시 열기</p>' +
-      mine.map(c=>`<button class="btn-o btn-sm" style="margin:0 6px 6px 0" onclick="openHost('${esc(c)}')">${esc(c)}</button>`).join('')
+      mine.map(e=>`<span style="display:inline-flex;align-items:center;border:1.5px solid var(--line);border-radius:8px;margin:0 6px 6px 0;overflow:hidden;background:#fff">
+        <button class="btn-o btn-sm" style="border:none;border-radius:0" onclick="openHost('${esc(e.c)}')">${e.n?esc(e.n)+' · ':''}${esc(e.c)}</button>
+        <button class="btn-sm" style="background:#fff;color:var(--danger);border:none;border-left:1.5px solid var(--line);border-radius:0" onclick="delSession('${esc(e.c)}')">✕</button>
+      </span>`).join('')
     : '';
 }
+function delSession(c){
+  if(!confirm(c+' 퀴즈와 모든 기록을 삭제할까요?')) return;
+  db.ref('sessions/'+c).remove();
+  saveList(myList().filter(e=>e.c!==c));
+  renderMySessions(); toast('삭제되었습니다');
+}
 function createSession(){
+  const name=$('sess-name').value.trim();
   code = Array.from({length:4},()=>CHARS[Math.floor(Math.random()*CHARS.length)]).join('');
-  ref().set({ kind:'quiz', created: firebase.database.ServerValue.TIMESTAMP, state:null })
+  ref().set({ kind:'quiz', created: firebase.database.ServerValue.TIMESTAMP, state:null, name: name||null })
     .then(()=>{
-      const mine = JSON.parse(localStorage.qz_mine||'[]');
-      if(!mine.includes(code)){ mine.unshift(code); localStorage.qz_mine = JSON.stringify(mine.slice(0,8)); }
+      const mine = myList();
+      if(!mine.some(e=>e.c===code)){ mine.unshift({c:code,n:name}); saveList(mine); }
       openHost(code);
     })
     .catch(e=>toast('오류: '+e.message));
 }
 function openHost(c){
   code=c; isHost=true;
+  const e=myList().find(x=>x.c===c);
+  $('h-name').textContent = (e&&e.n)? e.n : '';
   $('h-code').textContent = code;
   const url = baseUrl()+'?s='+code;
   $('h-link').textContent = url;
