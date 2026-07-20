@@ -116,6 +116,10 @@
       </div>
       <input type="text" id="new-title" placeholder="질문 / 제목 입력" style="margin-bottom:10px">
       <textarea id="new-opts" rows="3" placeholder="선택지 (한 줄에 하나)" style="margin-bottom:10px">찬성&#10;반대</textarea>
+      <div id="limit-row" class="hidden" style="margin-bottom:10px">
+        <label class="sub">기기당 제출 개수&nbsp;</label>
+        <select id="new-limit" style="width:auto"><option value="1">1개</option><option value="2">2개</option><option value="3">3개</option><option value="5">5개</option></select>
+      </div>
       <button class="btn-p" onclick="addActivity()">추가</button>
     </div>
 
@@ -154,7 +158,7 @@ const firebaseConfig = {
 };
 /* ============================================================ */
 
-let db=null, code=null, isHost=false, actListener=null, curListener=null, resListener=null;
+let db=null, code=null, isHost=false, cloudLimit=1, actListener=null, curListener=null, resListener=null;
 const $=id=>document.getElementById(id);
 const CHARS="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const clientId = localStorage.lv_cid || (localStorage.lv_cid = Math.random().toString(36).slice(2,10));
@@ -221,6 +225,7 @@ function joinSession(c){
 function onTypeChange(){
   const t=$('new-type').value;
   $('new-opts').classList.toggle('hidden', !(t==='poll'||t==='poll2'));
+  $('limit-row').classList.toggle('hidden', t!=='cloud');
   if(t==='poll2') $('new-opts').value='찬성\n반대';
   else if(t==='poll' && $('new-opts').value==='찬성\n반대') $('new-opts').value='';
 }
@@ -228,6 +233,7 @@ function addActivity(){
   const t=$('new-type').value, title=$('new-title').value.trim();
   if(!title){ toast('질문/제목을 입력하세요'); return; }
   const act={ type:(t==='poll2'?'poll':t), title, ts:firebase.database.ServerValue.TIMESTAMP };
+  if(t==='cloud') act.limit=parseInt($('new-limit').value)||1;
   if(t==='poll'||t==='poll2'){
     const opts=$('new-opts').value.split('\n').map(s=>s.trim()).filter(Boolean);
     if(opts.length<2){ toast('선택지를 2개 이상 입력하세요'); return; }
@@ -318,8 +324,9 @@ function vote(i){
 }
 function partCloud(a){
   const box=$('p-body');
+  cloudLimit = a.limit||1;
   box.innerHTML = `<div class="result-title">${esc(a.title)}</div>
-    <div class="row"><input type="text" id="cw" class="grow" maxlength="20" placeholder="단어 입력 (기기당 3개, 20자)">
+    <div class="row"><input type="text" id="cw" class="grow" maxlength="20" placeholder="단어 입력 (기기당 ${cloudLimit}개)">
     <button class="btn-g" onclick="sendWord()">보내기</button></div>
     <div id="p-res" class="mt"></div>`;
   $('cw').addEventListener('keydown', e=>{ if(e.key==='Enter') sendWord(); });
@@ -329,10 +336,10 @@ function partCloud(a){
 function sendWord(){
   const w=$('cw').value.trim(); if(!w) return;
   const key='lv_w_'+currentId, n=parseInt(localStorage[key]||'0');
-  if(n>=3){ toast('기기당 최대 3개까지 제출할 수 있습니다'); return; }
+  if(n>=cloudLimit){ toast('기기당 최대 '+cloudLimit+'개까지 제출할 수 있습니다'); return; }
   ref('responses/'+currentId+'/words/'+clientId).push(w.slice(0,20)).then(()=>{
     localStorage[key]=String(n+1);
-    $('cw').value=''; toast('제출되었습니다 ('+(n+1)+'/3)');
+    $('cw').value=''; toast('제출되었습니다 ('+(n+1)+'/'+cloudLimit+')');
   });
 }
 function partQna(a){
