@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>라이브 퀴즈</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --sub:#6b7280;
+    --accent:#3b5bdb; --accent2:#12b886; --danger:#e03131; --line:#e5e8f0; --gold:#f59f00;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Apple SD Gothic Neo','Malgun Gothic',Pretendard,sans-serif; background:var(--bg); color:var(--ink); min-height:100vh;}
+  .wrap{max-width:860px; margin:0 auto; padding:20px 16px 60px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(20,30,60,.05);}
+  h1{font-size:1.5rem; margin-bottom:6px;}
+  h2{font-size:1.15rem; margin-bottom:12px;}
+  .sub{color:var(--sub); font-size:.9rem;}
+  button{font:inherit; cursor:pointer; border:none; border-radius:10px; padding:12px 18px; font-weight:600;}
+  .btn-p{background:var(--accent); color:#fff;}
+  .btn-g{background:var(--accent2); color:#fff;}
+  .btn-y{background:var(--gold); color:#fff;}
+  .btn-o{background:#fff; color:var(--ink); border:1.5px solid var(--line);}
+  .btn-sm{padding:7px 12px; font-size:.85rem; border-radius:8px;}
+  .btn-danger{background:#fff; color:var(--danger); border:1.5px solid #ffc9c9;}
+  button:disabled{opacity:.45; cursor:not-allowed;}
+  input[type=text],input[type=number],textarea,select{font:inherit; width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; background:#fff;}
+  input:focus,textarea:focus{outline:2px solid var(--accent); border-color:transparent;}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .grow{flex:1; min-width:140px;}
+  .hidden{display:none !important;}
+  .code-big{font-size:2.6rem; font-weight:800; letter-spacing:.15em; color:var(--accent);}
+  #qrbox{background:#fff; padding:10px; border-radius:10px; display:inline-block;}
+  .opt-btn{display:block; width:100%; text-align:left; margin-bottom:10px; padding:16px; font-size:1.05rem; background:#fff; border:2px solid var(--line); border-radius:12px; transition:.15s;}
+  .opt-btn:hover{border-color:var(--accent);}
+  .opt-btn.sel{border-color:var(--accent); background:#edf2ff;}
+  .opt-btn.correct{border-color:var(--accent2); background:#e6fcf5;}
+  .opt-btn.wrong{border-color:#ffc9c9; background:#fff5f5;}
+  .bar-row{margin-bottom:12px;}
+  .bar-label{display:flex; justify-content:space-between; font-size:.95rem; margin-bottom:4px;}
+  .bar-track{background:#eef0f6; border-radius:8px; height:26px; overflow:hidden;}
+  .bar-fill{height:100%; border-radius:8px; background:var(--accent); transition:width .4s; min-width:2px;}
+  .bar-fill.ok{background:var(--accent2);}
+  .q-item{border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px;}
+  .q-item.live{border-color:var(--accent2); box-shadow:0 0 0 2px #c3fae8;}
+  .badge{font-size:.72rem; padding:3px 8px; border-radius:20px; background:#eef0f6; color:var(--sub); font-weight:700;}
+  .badge.live{background:#12b886; color:#fff;}
+  .center{text-align:center;}
+  .mt{margin-top:14px;} .mb{margin-bottom:14px;}
+  .waiting{font-size:1.2rem; color:var(--sub); text-align:center; padding:50px 0;}
+  #toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 20px; border-radius:24px; font-size:.9rem; opacity:0; transition:.3s; pointer-events:none; z-index:50;}
+  #toast.show{opacity:1;}
+  .result-title{font-size:1.35rem; font-weight:800; margin-bottom:16px;}
+  .lb-row{display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px; font-size:1.05rem;}
+  .lb-row.top1{background:#fff9db; border-color:#ffe066;}
+  .lb-rank{font-weight:800; width:2.2em; color:var(--sub);}
+  .big-feedback{font-size:2rem; font-weight:800; text-align:center; padding:30px 0;}
+  .ok-txt{color:var(--accent2);} .no-txt{color:var(--danger);}
+  .score-pill{background:#edf2ff; color:var(--accent); border-radius:20px; padding:4px 12px; font-weight:700; display:inline-block;}
+  @media(max-width:600px){ .code-big{font-size:2rem;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="scr-config" class="card hidden">
+    <h1>초기 설정 필요</h1>
+    <p class="sub mt">파일 하단 <b>firebaseConfig</b>에 Firebase 설정값을 넣어야 합니다.</p>
+  </div>
+
+  <!-- 홈 -->
+  <div id="scr-home" class="hidden">
+    <div class="card center">
+      <h1>라이브 퀴즈</h1>
+      <p class="sub">문항 출제 · 실시간 채점 · 리더보드</p>
+    </div>
+    <div class="card">
+      <h2>진행자</h2>
+      <button class="btn-p" onclick="createSession()">새 퀴즈 만들기</button>
+      <div id="my-sessions" class="mt"></div>
+    </div>
+    <div class="card">
+      <h2>참여자</h2>
+      <div class="row">
+        <input type="text" id="join-code" class="grow" placeholder="퀴즈 코드 4자리" maxlength="4" style="text-transform:uppercase">
+        <button class="btn-g" onclick="joinByInput()">참여</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 진행자 -->
+  <div id="scr-host" class="hidden">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <p class="sub">참여 코드</p>
+          <div class="code-big" id="h-code"></div>
+          <p class="sub" id="h-link" style="word-break:break-all"></p>
+          <p class="sub mt">참가자 <b id="h-count">0</b>명</p>
+        </div>
+        <div id="qrbox"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>문항 만들기</h2>
+      <input type="text" id="new-q" placeholder="문제 입력" style="margin-bottom:10px">
+      <textarea id="new-opts" rows="4" placeholder="보기 (한 줄에 하나, 2~6개)" style="margin-bottom:10px"></textarea>
+      <div class="row mb">
+        <label class="sub">정답 번호</label>
+        <input type="number" id="new-ans" min="1" max="6" value="1" style="width:80px">
+      </div>
+      <button class="btn-p" onclick="addQuestion()">문항 추가</button>
+    </div>
+
+    <div class="card">
+      <h2>문항 목록</h2>
+      <p class="sub mb">「출제」→ 학생 답 제출 → 「정답 공개」→ 자동 채점 (정답 100점)</p>
+      <div id="q-list"></div>
+      <div class="row mt">
+        <button class="btn-y" onclick="showBoard()">🏆 리더보드 표시</button>
+        <button class="btn-o" onclick="stopAll()">화면 내리기</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>실시간 현황 <span class="badge live" id="live-badge" style="display:none">LIVE</span></h2>
+      <div id="h-results"><p class="waiting">출제 중인 문항이 없습니다</p></div>
+    </div>
+  </div>
+
+  <!-- 참여자 -->
+  <div id="scr-part" class="hidden">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <p class="sub">퀴즈 <b id="p-code"></b> · <span id="p-name"></span></p>
+        <span class="score-pill" id="p-score">0점</span>
+      </div>
+      <div id="p-body" class="mt"></div>
+    </div>
+  </div>
+
+  <!-- 닉네임 -->
+  <div id="scr-name" class="hidden">
+    <div class="card">
+      <h2>닉네임을 입력하세요</h2>
+      <div class="row">
+        <input type="text" id="nick" class="grow" maxlength="12" placeholder="닉네임 (최대 12자)">
+        <button class="btn-g" onclick="setName()">입장</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   Firebase 설정 (vote와 동일 프로젝트)
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyDQliLYNv26KCVwnNhjNNuK5mb0OPwooqs",
+  authDomain: "reading-discussion-2f802.firebaseapp.com",
+  databaseURL: "https://reading-discussion-2f802-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "reading-discussion-2f802"
+};
+/* ============================================================ */
+
+let db=null, code=null, isHost=false;
+let questions={}, state=null, players={};
+let ansListener=null, myAnswerShown=null;
+const $=id=>document.getElementById(id);
+const CHARS="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const clientId = localStorage.lv_cid || (localStorage.lv_cid = Math.random().toString(36).slice(2,10));
+const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+function show(id){ ['scr-config','scr-home','scr-host','scr-part','scr-name'].forEach(s=>$(s).classList.add('hidden')); $(id).classList.remove('hidden'); }
+function ref(p){ return db.ref('sessions/'+code+(p?'/'+p:'')); }
+function baseUrl(){ return location.origin + location.pathname; }
+
+window.addEventListener('load', ()=>{
+  if(!firebaseConfig.databaseURL){ show('scr-config'); return; }
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  const p = new URLSearchParams(location.search);
+  if(p.get('s')) joinSession(p.get('s').toUpperCase());
+  else { renderMySessions(); show('scr-home'); }
+});
+
+/* ---------- 홈 ---------- */
+function renderMySessions(){
+  const mine = JSON.parse(localStorage.qz_mine||'[]');
+  $('my-sessions').innerHTML = mine.length
+    ? '<p class="sub" style="margin-bottom:6px">내 퀴즈 다시 열기</p>' +
+      mine.map(c=>`<button class="btn-o btn-sm" style="margin:0 6px 6px 0" onclick="openHost('${esc(c)}')">${esc(c)}</button>`).join('')
+    : '';
+}
+function createSession(){
+  code = Array.from({length:4},()=>CHARS[Math.floor(Math.random()*CHARS.length)]).join('');
+  ref().set({ kind:'quiz', created: firebase.database.ServerValue.TIMESTAMP, state:null })
+    .then(()=>{
+      const mine = JSON.parse(localStorage.qz_mine||'[]');
+      if(!mine.includes(code)){ mine.unshift(code); localStorage.qz_mine = JSON.stringify(mine.slice(0,8)); }
+      openHost(code);
+    })
+    .catch(e=>toast('오류: '+e.message));
+}
+function openHost(c){
+  code=c; isHost=true;
+  $('h-code').textContent = code;
+  const url = baseUrl()+'?s='+code;
+  $('h-link').textContent = url;
+  $('qrbox').innerHTML='';
+  new QRCode($('qrbox'), {text:url, width:140, height:140});
+  ref('questions').on('value', s=>{ questions=s.val()||{}; renderQList(); hostResults(); });
+  ref('state').on('value', s=>{ state=s.val(); renderQList(); hostResults(); });
+  ref('players').on('value', s=>{ players=s.val()||{}; $('h-count').textContent=Object.keys(players).length; if(state&&state.phase==='board') hostResults(); });
+  show('scr-host');
+}
+function joinByInput(){
+  const c = $('join-code').value.trim().toUpperCase();
+  if(c.length!==4){ toast('코드 4자리를 입력하세요'); return; }
+  joinSession(c);
+}
+function joinSession(c){
+  db.ref('sessions/'+c+'/created').get().then(s=>{
+    if(!s.exists()){ toast('퀴즈를 찾을 수 없습니다'); show('scr-home'); return; }
+    code=c; isHost=false;
+    const saved = localStorage['qz_name_'+code];
+    if(saved){ enterAs(saved); } else { show('scr-name'); $('nick').focus(); }
+  });
+}
+function setName(){
+  const n=$('nick').value.trim();
+  if(!n){ toast('닉네임을 입력하세요'); return; }
+  localStorage['qz_name_'+code]=n;
+  enterAs(n);
+}
+function enterAs(name){
+  ref('players/'+clientId+'/name').set(name.slice(0,12));
+  ref('players/'+clientId+'/score').transaction(s=>s||0);
+  $('p-code').textContent=code;
+  $('p-name').textContent=name;
+  ref('players/'+clientId+'/score').on('value', s=>{ $('p-score').textContent=(s.val()||0)+'점'; });
+  ref('state').on('value', s=>{ state=s.val(); partBody(); });
+  show('scr-part');
+}
+
+/* ---------- 문항 관리 (진행자) ---------- */
+function addQuestion(){
+  const q=$('new-q').value.trim();
+  const opts=$('new-opts').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const ans=parseInt($('new-ans').value);
+  if(!q){ toast('문제를 입력하세요'); return; }
+  if(opts.length<2){ toast('보기를 2개 이상 입력하세요'); return; }
+  if(!(ans>=1 && ans<=opts.length)){ toast('정답 번호가 보기 범위를 벗어났습니다'); return; }
+  ref('questions').push({text:q, options:opts, answer:ans-1, ts:firebase.database.ServerValue.TIMESTAMP})
+    .then(()=>{ $('new-q').value=''; $('new-opts').value=''; $('new-ans').value=1; toast('문항이 추가되었습니다'); });
+}
+function renderQList(){
+  const ids=Object.keys(questions);
+  $('q-list').innerHTML = ids.length? ids.map((id,idx)=>{
+    const q=questions[id], live=(state && state.qid===id);
+    const phase = live? (state.phase==='ans'?'답변 받는 중':'정답 공개됨') : '';
+    return `<div class="q-item ${live?'live':''}">
+      <div class="row" style="justify-content:space-between">
+        <div class="grow"><span class="badge ${live?'live':''}">${live?phase:('Q'+(idx+1))}</span>
+          <b style="margin-left:6px">${esc(q.text)}</b>
+          <span class="sub" style="margin-left:6px">(정답: ${esc(q.options[q.answer])})</span></div>
+        <div>
+          ${live && state.phase==='ans' ? `<button class="btn-y btn-sm" onclick="reveal()">정답 공개</button>` : ''}
+          ${!live ? `<button class="btn-g btn-sm" onclick="startQ('${id}')">출제</button>` : ''}
+          <button class="btn-danger btn-sm" onclick="delQ('${id}')">삭제</button>
+        </div>
+      </div></div>`;
+  }).join('') : '<p class="sub">아직 문항이 없습니다.</p>';
+}
+function startQ(id){ ref('state').set({qid:id, phase:'ans'}); }
+function reveal(){ if(state&&state.qid) ref('state').set({qid:state.qid, phase:'rev'}); }
+function showBoard(){ ref('state').set({phase:'board'}); }
+function stopAll(){ ref('state').set(null); }
+function delQ(id){
+  if(!confirm('이 문항과 답변을 삭제할까요?')) return;
+  if(state && state.qid===id) ref('state').set(null);
+  ref('questions/'+id).remove(); ref('answers/'+id).remove();
+}
+
+/* ---------- 실시간 현황 (진행자) ---------- */
+function hostResults(){
+  const box=$('h-results');
+  $('live-badge').style.display = state? 'inline-block':'none';
+  if(ansListener){ ansListener.off(); ansListener=null; }
+  if(!state){ box.innerHTML='<p class="waiting">출제 중인 문항이 없습니다</p>'; return; }
+  if(state.phase==='board'){ box.innerHTML='<div class="result-title">🏆 리더보드</div>'+renderBoard(); return; }
+  const q=questions[state.qid]; if(!q) return;
+  ansListener = ref('answers/'+state.qid);
+  ansListener.on('value', s=>{
+    const answers=s.val()||{}, counts=q.options.map(()=>0);
+    Object.values(answers).forEach(v=>{ if(counts[v]!==undefined) counts[v]++; });
+    const total=Object.keys(answers).length;
+    box.innerHTML = `<div class="result-title">${esc(q.text)}</div>
+      <p class="sub mb">답변 ${total} / ${Object.keys(players).length}명 ${state.phase==='rev'?'· 정답 공개됨':''}</p>` +
+      q.options.map((o,i)=>{
+        const pct= total? Math.round(counts[i]/total*100):0;
+        const mark = state.phase==='rev' && i===q.answer ? ' ✅' : '';
+        return `<div class="bar-row"><div class="bar-label"><span>${esc(o)}${mark}</span><b>${counts[i]}명 (${pct}%)</b></div>
+          <div class="bar-track"><div class="bar-fill ${state.phase==='rev'&&i===q.answer?'ok':''}" style="width:${pct}%"></div></div></div>`;
+      }).join('');
+  });
+}
+function renderBoard(){
+  const ids=Object.keys(players);
+  if(!ids.length) return '<p class="waiting">참가자가 없습니다</p>';
+  ids.sort((a,b)=>(players[b].score||0)-(players[a].score||0));
+  return ids.slice(0,10).map((id,i)=>`
+    <div class="lb-row ${i===0?'top1':''}">
+      <span><span class="lb-rank">${i+1}</span> ${esc(players[id].name||'?')}</span>
+      <b>${players[id].score||0}점</b>
+    </div>`).join('');
+}
+
+/* ---------- 참여자 ---------- */
+function partBody(){
+  const box=$('p-body');
+  if(!state){ box.innerHTML='<p class="waiting">진행자가 문항을 출제하면 여기에 표시됩니다…</p>'; return; }
+  if(state.phase==='board'){
+    ref('players').get().then(s=>{ players=s.val()||{}; box.innerHTML='<div class="result-title">🏆 리더보드</div>'+renderBoard(); });
+    return;
+  }
+  ref('questions/'+state.qid).get().then(s=>{
+    const q=s.val(); if(!q) return;
+    const myAns = localStorage['qz_a_'+code+'_'+state.qid];
+    if(state.phase==='ans'){
+      if(myAns!==undefined){
+        box.innerHTML = `<div class="result-title">${esc(q.text)}</div>
+          <p class="waiting">제출 완료! 정답 공개를 기다리는 중…</p>`;
+      } else {
+        box.innerHTML = `<div class="result-title">${esc(q.text)}</div>` +
+          q.options.map((o,i)=>`<button class="opt-btn" onclick="answer(${i})">${esc(o)}</button>`).join('');
+      }
+    } else { // rev
+      const mine = myAns!==undefined? parseInt(myAns): null;
+      const correct = (mine===q.answer);
+      // 점수 반영 (1회만)
+      const sk='qz_sc_'+code+'_'+state.qid;
+      if(correct && !localStorage[sk]){
+        localStorage[sk]='1';
+        ref('players/'+clientId+'/score').transaction(s=>(s||0)+100);
+      }
+      box.innerHTML = `<div class="result-title">${esc(q.text)}</div>` +
+        q.options.map((o,i)=>{
+          let cls='opt-btn';
+          if(i===q.answer) cls+=' correct';
+          else if(i===mine) cls+=' wrong';
+          return `<button class="${cls}" disabled>${esc(o)}${i===q.answer?' ✅':''}</button>`;
+        }).join('') +
+        (mine===null
+          ? `<p class="big-feedback no-txt">미제출</p>`
+          : `<p class="big-feedback ${correct?'ok-txt':'no-txt'}">${correct?'정답! +100점':'오답'}</p>`);
+    }
+  });
+}
+function answer(i){
+  ref('answers/'+state.qid+'/'+clientId).set(i).then(()=>{
+    localStorage['qz_a_'+code+'_'+state.qid]=String(i);
+    partBody(); toast('제출되었습니다');
+  });
+}
+</script>
+</body>
+</html>
