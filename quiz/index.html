@@ -122,7 +122,8 @@
         <label class="sub">정답 번호</label>
         <input type="number" id="new-ans" min="1" max="6" value="1" style="width:80px">
       </div>
-      <button class="btn-p" onclick="addQuestion()">문항 추가</button>
+      <button class="btn-p" id="add-btn" onclick="addQuestion()">문항 추가</button>
+      <button class="btn-o hidden" id="cancel-btn" onclick="cancelEdit()">수정 취소</button>
     </div>
 
     <div class="card">
@@ -179,7 +180,7 @@ const firebaseConfig = {
 /* ============================================================ */
 
 let db=null, code=null, isHost=false;
-let questions={}, state=null, players={};
+let questions={}, state=null, players={}, editingId=null;
 let ansListener=null, myAnswerShown=null;
 const $=id=>document.getElementById(id);
 const CHARS="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -292,8 +293,30 @@ function addQuestion(){
   if(!q){ toast('문제를 입력하세요'); return; }
   if(opts.length<2){ toast('보기를 2개 이상 입력하세요'); return; }
   if(!(ans>=1 && ans<=opts.length)){ toast('정답 번호가 보기 범위를 벗어났습니다'); return; }
-  ref('questions').push({text:q, options:opts, answer:ans-1, ts:firebase.database.ServerValue.TIMESTAMP})
-    .then(()=>{ $('new-q').value=''; $('new-opts').value=''; $('new-ans').value=1; toast('문항이 추가되었습니다'); });
+  if(editingId){
+    const ts=(questions[editingId]&&questions[editingId].ts)||null;
+    ref('questions/'+editingId).set({text:q, options:opts, answer:ans-1, ts})
+      .then(()=>{ toast('수정되었습니다'); cancelEdit(); });
+  } else {
+    ref('questions').push({text:q, options:opts, answer:ans-1, ts:firebase.database.ServerValue.TIMESTAMP})
+      .then(()=>{ $('new-q').value=''; $('new-opts').value=''; $('new-ans').value=1; toast('문항이 추가되었습니다'); });
+  }
+}
+function editQ(id){
+  const q=questions[id]; if(!q) return;
+  editingId=id;
+  $('new-q').value=q.text;
+  $('new-opts').value=(q.options||[]).join('\n');
+  $('new-ans').value=String((q.answer||0)+1);
+  $('add-btn').textContent='수정 저장';
+  $('cancel-btn').classList.remove('hidden');
+  $('new-q').scrollIntoView({behavior:'smooth', block:'center'});
+}
+function cancelEdit(){
+  editingId=null;
+  $('new-q').value=''; $('new-opts').value=''; $('new-ans').value=1;
+  $('add-btn').textContent='문항 추가';
+  $('cancel-btn').classList.add('hidden');
 }
 function renderQList(){
   const ids=Object.keys(questions);
@@ -307,7 +330,8 @@ function renderQList(){
           <span class="sub" style="margin-left:6px">(정답: ${esc(q.options[q.answer])})</span></div>
         <div>
           ${live && state.phase==='ans' ? `<button class="btn-y btn-sm" onclick="reveal()">정답 공개</button>` : ''}
-          ${!live ? `<button class="btn-g btn-sm" onclick="startQ('${id}')">출제</button>` : ''}
+          ${!live ? `<button class="btn-g btn-sm" onclick="startQ('${id}')">출제</button>
+          <button class="btn-o btn-sm" onclick="editQ('${id}')">수정</button>` : ''}
           <button class="btn-danger btn-sm" onclick="delQ('${id}')">삭제</button>
         </div>
       </div></div>`;

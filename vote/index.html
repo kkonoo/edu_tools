@@ -129,7 +129,8 @@
         <label class="sub">기기당 제출 개수&nbsp;</label>
         <select id="new-limit" style="width:auto"><option value="1">1개</option><option value="2">2개</option><option value="3">3개</option><option value="5">5개</option></select>
       </div>
-      <button class="btn-p" onclick="addActivity()">추가</button>
+      <button class="btn-p" id="add-btn" onclick="addActivity()">추가</button>
+      <button class="btn-o hidden" id="cancel-btn" onclick="cancelEdit()">수정 취소</button>
     </div>
 
     <div class="card">
@@ -274,11 +275,35 @@ function addActivity(){
     if(opts.length<2){ toast('선택지를 2개 이상 입력하세요'); return; }
     act.options=opts;
   }
-  ref('activities').push(act).then(()=>{ $('new-title').value=''; toast('추가되었습니다'); });
+  if(editingId){
+    act.ts = (acts[editingId]&&acts[editingId].ts)||null;
+    ref('activities/'+editingId).set(act).then(()=>{ toast('수정되었습니다'); cancelEdit(); });
+  } else {
+    ref('activities').push(act).then(()=>{ $('new-title').value=''; toast('추가되었습니다'); });
+  }
+}
+function editAct(id){
+  const a=acts[id]; if(!a) return;
+  if(id===currentId){ toast('진행 중인 활동은 중지 후 수정하세요'); return; }
+  editingId=id;
+  $('new-type').value = a.type;
+  onTypeChange();
+  $('new-title').value=a.title;
+  if(a.type==='poll') $('new-opts').value=(a.options||[]).join('\n');
+  if(a.type==='cloud') $('new-limit').value=String(a.limit||1);
+  $('add-btn').textContent='수정 저장';
+  $('cancel-btn').classList.remove('hidden');
+  $('new-title').scrollIntoView({behavior:'smooth', block:'center'});
+}
+function cancelEdit(){
+  editingId=null;
+  $('new-title').value='';
+  $('add-btn').textContent='추가';
+  $('cancel-btn').classList.add('hidden');
 }
 
 /* ---------- 활동 목록 (진행자) ---------- */
-let acts={}, currentId=null;
+let acts={}, currentId=null, editingId=null;
 function listenActivities(){
   if(actListener) actListener.off();
   actListener = ref('activities');
@@ -305,6 +330,7 @@ function renderActList(){
         <div>
           ${live ? `<button class="btn-o btn-sm" onclick="setCurrent(null)">중지</button>`
                  : `<button class="btn-g btn-sm" onclick="setCurrent('${id}')">시작</button>`}
+          <button class="btn-o btn-sm" onclick="editAct('${id}')">수정</button>
           <button class="btn-danger btn-sm" onclick="delAct('${id}')">삭제</button>
         </div>
       </div></div>`;
