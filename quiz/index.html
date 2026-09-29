@@ -133,6 +133,7 @@
       <div class="row mt">
         <button class="btn-y" onclick="showBoard()">🏆 리더보드 표시</button>
         <button class="btn-o" onclick="stopAll()">화면 내리기</button>
+        <button class="btn-danger" onclick="resetSession()">🔄 답변·점수 초기화</button>
       </div>
     </div>
 
@@ -182,6 +183,8 @@ const firebaseConfig = {
 let db=null, code=null, isHost=false;
 let questions={}, state=null, players={}, editingId=null;
 let ansListener=null, myAnswerShown=null;
+let round=null; // 초기화할 때마다 바뀜 → 기기별 제출 기록 분리
+function rk(){ return round? '_'+round : ''; }
 const $=id=>document.getElementById(id);
 const CHARS="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const clientId = localStorage.lv_cid || (localStorage.lv_cid = Math.random().toString(36).slice(2,10));
@@ -276,8 +279,12 @@ function setName(){
   enterAs(n);
 }
 function enterAs(name){
-  ref('players/'+clientId+'/name').set(name.slice(0,12));
-  ref('players/'+clientId+'/score').transaction(s=>s||0);
+  ref('round').on('value', s=>{
+    round=s.val();
+    ref('players/'+clientId+'/name').set(name.slice(0,12));
+    ref('players/'+clientId+'/score').transaction(s=>s||0);
+    partBody();
+  });
   $('p-code').textContent=code;
   $('p-name').textContent=name;
   ref('players/'+clientId+'/score').on('value', s=>{ $('p-score').textContent=(s.val()||0)+'점'; });
@@ -341,6 +348,11 @@ function startQ(id){ ref('state').set({qid:id, phase:'ans'}); }
 function reveal(){ if(state&&state.qid) ref('state').set({qid:state.qid, phase:'rev'}); }
 function showBoard(){ ref('state').set({phase:'board'}); }
 function stopAll(){ ref('state').set(null); }
+function resetSession(){
+  if(!confirm('모든 답변·참가자·점수를 지우고 처음 상태로 되돌릴까요?\n(문항과 참여 코드는 그대로 유지됩니다)')) return;
+  ref().update({answers:null, players:null, state:null, round:firebase.database.ServerValue.TIMESTAMP})
+    .then(()=>toast('초기화되었습니다'));
+}
 function delQ(id){
   if(!confirm('이 문항과 답변을 삭제할까요?')) return;
   if(state && state.qid===id) ref('state').set(null);
@@ -391,7 +403,7 @@ function partBody(){
   }
   ref('questions/'+state.qid).get().then(s=>{
     const q=s.val(); if(!q) return;
-    const myAns = localStorage['qz_a_'+code+'_'+state.qid];
+    const myAns = localStorage['qz_a_'+code+rk()+'_'+state.qid];
     if(state.phase==='ans'){
       if(myAns!==undefined){
         box.innerHTML = `<div class="result-title">${esc(q.text)}</div>
@@ -404,7 +416,7 @@ function partBody(){
       const mine = myAns!==undefined? parseInt(myAns): null;
       const correct = (mine===q.answer);
       // 점수 반영 (1회만)
-      const sk='qz_sc_'+code+'_'+state.qid;
+      const sk='qz_sc_'+code+rk()+'_'+state.qid;
       if(correct && !localStorage[sk]){
         localStorage[sk]='1';
         ref('players/'+clientId+'/score').transaction(s=>(s||0)+100);
@@ -424,7 +436,7 @@ function partBody(){
 }
 function answer(i){
   ref('answers/'+state.qid+'/'+clientId).set(i).then(()=>{
-    localStorage['qz_a_'+code+'_'+state.qid]=String(i);
+    localStorage['qz_a_'+code+rk()+'_'+state.qid]=String(i);
     partBody(); toast('제출되었습니다');
   });
 }

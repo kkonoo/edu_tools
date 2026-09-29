@@ -137,6 +137,8 @@
       <h2>활동 목록</h2>
       <p class="sub mb">「시작」을 누르면 참여자 화면에 해당 활동이 표시됩니다.</p>
       <div id="act-list"></div>
+      <div class="row mt"><button class="btn-danger btn-sm" onclick="resetSession()">🔄 응답 초기화</button>
+        <span class="sub">활동 목록은 유지, 모든 응답만 삭제 (다른 수업에서 재사용)</span></div>
     </div>
 
     <div class="card">
@@ -168,6 +170,8 @@ const firebaseConfig = {
 };
 /* ============================================================ */
 
+let round=null; // 초기화할 때마다 바뀜 → 기기별 제출 기록 분리
+function rk(){ return round? '_'+round : ''; }
 let db=null, code=null, isHost=false, cloudLimit=1, actListener=null, curListener=null, resListener=null;
 const $=id=>document.getElementById(id);
 const CHARS="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -252,6 +256,7 @@ function joinSession(c){
     if(!s.exists()){ toast('세션을 찾을 수 없습니다'); show('scr-home'); return; }
     code=c; isHost=false;
     $('p-code').textContent=code;
+    ref('round').on('value', s=>{ round=s.val(); partBody(); });
     listenCurrent();
     show('scr-part');
   });
@@ -337,6 +342,11 @@ function renderActList(){
   }).join('') : '<p class="sub">아직 활동이 없습니다.</p>';
 }
 function setCurrent(id){ ref('current').set(id); }
+function resetSession(){
+  if(!confirm('모든 응답(투표·단어·질문)을 지우고 처음 상태로 되돌릴까요?\n(활동 목록과 참여 코드는 그대로 유지됩니다)')) return;
+  ref().update({responses:null, current:null, round:firebase.database.ServerValue.TIMESTAMP})
+    .then(()=>toast('초기화되었습니다'));
+}
 function delAct(id){
   if(!confirm('이 활동과 응답을 삭제할까요?')) return;
   if(id===currentId) ref('current').set(null);
@@ -368,7 +378,7 @@ function partBody(){
   });
 }
 function partPoll(a){
-  const box=$('p-body'), myVote = localStorage['lv_v_'+currentId];
+  const box=$('p-body'), myVote = localStorage['lv_v_'+currentId+rk()];
   box.innerHTML = `<div class="result-title">${esc(a.title)}</div>` +
     a.options.map((o,i)=>`<button class="opt-btn ${String(i)===myVote?'sel':''}" onclick="vote(${i})">${esc(o)}</button>`).join('') +
     `<div id="p-res" class="mt"></div>`;
@@ -379,7 +389,7 @@ function partPoll(a){
 }
 function vote(i){
   ref('responses/'+currentId+'/votes/'+clientId).set(i).then(()=>{
-    localStorage['lv_v_'+currentId]=String(i);
+    localStorage['lv_v_'+currentId+rk()]=String(i);
     partBody(); toast('제출되었습니다');
   });
 }
@@ -396,7 +406,7 @@ function partCloud(a){
 }
 function sendWord(){
   const w=$('cw').value.trim(); if(!w) return;
-  const key='lv_w_'+currentId, n=parseInt(localStorage[key]||'0');
+  const key='lv_w_'+currentId+rk(), n=parseInt(localStorage[key]||'0');
   if(n>=cloudLimit){ toast('기기당 최대 '+cloudLimit+'개까지 제출할 수 있습니다'); return; }
   ref('responses/'+currentId+'/words/'+clientId).push(w.slice(0,20)).then(()=>{
     localStorage[key]=String(n+1);
