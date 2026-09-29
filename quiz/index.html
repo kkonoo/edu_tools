@@ -60,6 +60,18 @@
   .big-feedback{font-size:2rem; font-weight:800; text-align:center; padding:30px 0;}
   .ok-txt{color:var(--accent2);} .no-txt{color:var(--danger);}
   .score-pill{background:#edf2ff; color:var(--accent); border-radius:20px; padding:4px 12px; font-weight:700; display:inline-block;}
+  /* 발표 화면 */
+  body.screen-mode .wrap{max-width:1200px; padding-bottom:90px;}
+  body.screen-mode .result-title{font-size:2.4rem;}
+  body.screen-mode .sub{font-size:1.2rem;}
+  body.screen-mode .bar-label{font-size:1.4rem;}
+  body.screen-mode .bar-track{height:40px;}
+  body.screen-mode .lb-row{font-size:1.6rem; padding:14px 20px;}
+  .s-opt{font-size:1.8rem; padding:18px 22px; border:2px solid var(--line); border-radius:14px; margin-bottom:12px; display:flex; align-items:center; gap:16px;}
+  .s-num{background:var(--accent); color:#fff; border-radius:50%; width:2.4rem; height:2.4rem; display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:1.3rem; flex:none;}
+  .s-count{font-size:1.6rem;}
+  #s-ctrl{position:fixed; bottom:12px; left:50%; transform:translateX(-50%); display:flex; gap:8px; background:rgba(255,255,255,.92); border:1px solid var(--line); border-radius:12px; padding:6px; opacity:.3; transition:.2s;}
+  #s-ctrl:hover{opacity:1;}
   @media(max-width:600px){ .code-big{font-size:2rem;} }
 </style>
 </head>
@@ -109,6 +121,7 @@
           <div class="code-big" id="h-code"></div>
           <p class="sub" id="h-link" style="word-break:break-all"></p>
           <p class="sub mt">참가자 <b id="h-count">0</b>명</p>
+          <button class="btn-p btn-sm mt" onclick="openScreenWin()">🖥 발표 화면 열기</button>
         </div>
         <div id="qrbox"></div>
       </div>
@@ -156,6 +169,17 @@
     </div>
   </div>
 
+  <!-- 발표 화면 (빔프로젝터용, 정답·조작 버튼 없음) -->
+  <div id="scr-screen" class="hidden">
+    <div id="s-body"></div>
+    <div id="s-ctrl">
+      <button class="btn-g btn-sm" onclick="nextQ()">▶ 다음 문제</button>
+      <button class="btn-y btn-sm" id="s-rev" onclick="reveal()">정답 공개</button>
+      <button class="btn-o btn-sm" onclick="showBoard()">🏆 리더보드</button>
+      <button class="btn-o btn-sm" onclick="stopAll()">대기 화면</button>
+    </div>
+  </div>
+
   <!-- 닉네임 -->
   <div id="scr-name" class="hidden">
     <div class="card">
@@ -192,7 +216,7 @@ const CHARS="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const clientId = localStorage.lv_cid || (localStorage.lv_cid = Math.random().toString(36).slice(2,10));
 const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
-function show(id){ ['scr-config','scr-home','scr-host','scr-part','scr-name'].forEach(s=>$(s).classList.add('hidden')); $(id).classList.remove('hidden'); }
+function show(id){ ['scr-config','scr-home','scr-host','scr-part','scr-name','scr-screen'].forEach(s=>$(s).classList.add('hidden')); $(id).classList.remove('hidden'); }
 function ref(p){ return db.ref('sessions/'+code+(p?'/'+p:'')); }
 function baseUrl(){ return location.origin + location.pathname; }
 
@@ -201,7 +225,7 @@ window.addEventListener('load', ()=>{
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
   const p = new URLSearchParams(location.search);
-  if(p.get('s')) joinSession(p.get('s').toUpperCase());
+  if(p.get('s')) (p.get('view')==='screen' ? openScreen : joinSession)(p.get('s').toUpperCase());
   else { renderMySessions(); show('scr-home'); }
 });
 
@@ -373,18 +397,21 @@ function hostResults(){
   const q=questions[state.qid]; if(!q) return;
   ansListener = ref('answers/'+state.qid);
   ansListener.on('value', s=>{
-    const answers=s.val()||{}, counts=q.options.map(()=>0);
-    Object.values(answers).forEach(v=>{ const a=ansOf(v); if(counts[a]!==undefined) counts[a]++; });
-    const total=Object.keys(answers).length;
+    const answers=s.val()||{}, total=Object.keys(answers).length;
     box.innerHTML = `<div class="result-title">${esc(q.text)}</div>
       <p class="sub mb">답변 ${total} / ${Object.keys(players).length}명 ${state.phase==='rev'?'· 정답 공개됨':''}</p>` +
-      q.options.map((o,i)=>{
-        const pct= total? Math.round(counts[i]/total*100):0;
-        const mark = state.phase==='rev' && i===q.answer ? ' ✅' : '';
-        return `<div class="bar-row"><div class="bar-label"><span>${esc(o)}${mark}</span><b>${counts[i]}명 (${pct}%)</b></div>
-          <div class="bar-track"><div class="bar-fill ${state.phase==='rev'&&i===q.answer?'ok':''}" style="width:${pct}%"></div></div></div>`;
-      }).join('') + (state.phase==='rev' ? renderFastest(q, answers) : '');
+      resultBars(q, answers, state.phase==='rev') + (state.phase==='rev' ? renderFastest(q, answers) : '');
   });
+}
+function resultBars(q, answers, rev){
+  const counts=q.options.map(()=>0);
+  Object.values(answers).forEach(v=>{ const a=ansOf(v); if(counts[a]!==undefined) counts[a]++; });
+  const total=Object.keys(answers).length;
+  return q.options.map((o,i)=>{
+    const pct= total? Math.round(counts[i]/total*100):0, ok = rev && i===q.answer;
+    return `<div class="bar-row"><div class="bar-label"><span>${esc(o)}${ok?' ✅':''}</span><b>${counts[i]}명 (${pct}%)</b></div>
+      <div class="bar-track"><div class="bar-fill ${ok?'ok':''}" style="width:${pct}%"></div></div></div>`;
+  }).join('');
 }
 function ansOf(v){ return (v!==null && typeof v==='object')? v.a : v; }
 function renderFastest(q, answers){
@@ -411,6 +438,64 @@ function renderBoard(){
       <span><span class="lb-rank">${i+1}</span> ${esc(players[id].name||'?')}</span>
       <b>${players[id].score||0}점</b>
     </div>`).join('');
+}
+
+/* ---------- 발표 화면 ---------- */
+let lastQid=null, sAnsRef=null, sAnswers={}, srvOffset=0, sTimer=null;
+function openScreenWin(){ window.open(baseUrl()+'?s='+code+'&view=screen', 'qz_screen'); }
+function openScreen(c){
+  db.ref('sessions/'+c+'/created').get().then(s=>{
+    if(!s.exists()){ toast('퀴즈를 찾을 수 없습니다'); show('scr-home'); return; }
+    code=c; document.body.classList.add('screen-mode');
+    db.ref('.info/serverTimeOffset').on('value', s=>{ srvOffset=s.val()||0; });
+    ref('questions').on('value', s=>{ questions=s.val()||{}; screenRender(); });
+    ref('players').on('value', s=>{ players=s.val()||{}; screenRender(); });
+    ref('round').on('value', ()=>{ lastQid = (state&&state.qid)||null; }); // 초기화 후엔 Q1부터
+    ref('state').on('value', s=>{
+      state=s.val();
+      if(state&&state.qid) lastQid=state.qid;
+      if(sAnsRef){ sAnsRef.off(); sAnsRef=null; }
+      sAnswers={};
+      if(state&&state.qid){ sAnsRef=ref('answers/'+state.qid); sAnsRef.on('value', a=>{ sAnswers=a.val()||{}; screenRender(); }); }
+      screenRender();
+    });
+    show('scr-screen');
+  });
+}
+function screenRender(){
+  const box=$('s-body'), np=Object.keys(players).length;
+  $('s-rev').classList.toggle('hidden', !(state&&state.phase==='ans'));
+  if(sTimer){ clearInterval(sTimer); sTimer=null; }
+  if(!state){
+    const url=baseUrl()+'?s='+code;
+    box.innerHTML=`<div class="card center"><p class="sub">참여 코드</p>
+      <div class="code-big" style="font-size:6rem">${esc(code)}</div>
+      <div id="s-qr" style="display:inline-block;background:#fff;padding:14px;border-radius:12px;margin:16px 0"></div>
+      <p class="sub" style="word-break:break-all">${esc(url)}</p>
+      <p class="s-count mt">참가자 <b>${np}</b>명</p></div>`;
+    new QRCode($('s-qr'), {text:url, width:260, height:260});
+    return;
+  }
+  if(state.phase==='board'){ box.innerHTML='<div class="card"><div class="result-title">🏆 리더보드</div>'+renderBoard()+'</div>'; return; }
+  const q=questions[state.qid]; if(!q){ box.innerHTML=''; return; }
+  const ids=Object.keys(questions);
+  const head=`<p class="sub">Q${ids.indexOf(state.qid)+1} / ${ids.length} · 참여 코드 <b>${esc(code)}</b></p>
+    <div class="result-title">${esc(q.text)}</div>`;
+  if(state.phase==='ans'){
+    box.innerHTML=`<div class="card">${head}
+      ${q.options.map((o,i)=>`<div class="s-opt"><span class="s-num">${i+1}</span>${esc(o)}</div>`).join('')}
+      <div class="row mt s-count" style="justify-content:space-between">
+        <span>제출 <b>${Object.keys(sAnswers).length}</b> / ${np}명</span><span id="s-time"></span></div></div>`;
+    const tick=()=>{ const el=$('s-time'); if(el && state && state.t0) el.textContent='⏱ '+Math.max(0,Math.floor((Date.now()+srvOffset-state.t0)/1000))+'초'; };
+    tick(); sTimer=setInterval(tick,500);
+    return;
+  }
+  box.innerHTML=`<div class="card">${head}${resultBars(q, sAnswers, true)}${renderFastest(q, sAnswers)}</div>`;
+}
+function nextQ(){
+  const ids=Object.keys(questions), i = lastQid? ids.indexOf(lastQid)+1 : 0;
+  if(i>=ids.length){ toast('마지막 문제입니다'); return; }
+  startQ(ids[i]);
 }
 
 /* ---------- 참여자 ---------- */
