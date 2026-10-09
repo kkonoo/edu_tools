@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>토론 도우미</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --sub:#6b7280;
+    --accent:#3b5bdb; --accent2:#12b886; --danger:#e03131; --line:#e5e8f0; --gold:#f59f00;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Apple SD Gothic Neo','Malgun Gothic',Pretendard,sans-serif; background:var(--bg); color:var(--ink); min-height:100vh;}
+  .wrap{max-width:1000px; margin:0 auto; padding:20px 16px 60px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(20,30,60,.05);}
+  h1{font-size:1.5rem; margin-bottom:6px;}
+  h2{font-size:1.15rem; margin-bottom:12px;}
+  .sub{color:var(--sub); font-size:.9rem;}
+  button{font:inherit; cursor:pointer; border:none; border-radius:10px; padding:12px 18px; font-weight:600;}
+  .btn-p{background:var(--accent); color:#fff;}
+  .btn-g{background:var(--accent2); color:#fff;}
+  .btn-o{background:#fff; color:var(--ink); border:1.5px solid var(--line);}
+  button:disabled{opacity:.45; cursor:not-allowed;}
+  input[type=number],textarea,select{font:inherit; width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; background:#fff;}
+  input:focus,textarea:focus{outline:2px solid var(--accent); border-color:transparent;}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .hidden{display:none !important;}
+  .center{text-align:center;}
+  .mt{margin-top:14px;}
+  #toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 20px; border-radius:24px; font-size:.9rem; opacity:0; transition:.3s; pointer-events:none; z-index:50;}
+  #toast.show{opacity:1;}
+  /* 조 편성 */
+  .groups{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px;}
+  .group{border:1.5px solid var(--line); border-radius:12px; padding:12px 14px;}
+  .group h3{font-size:1.2rem; color:var(--accent); margin-bottom:8px;}
+  .group ol{padding-left:1.5em; font-size:1.2rem; line-height:1.7;}
+  /* 타이머 */
+  .t-stage{font-size:2rem; font-weight:800; text-align:center; margin-top:6px;}
+  .t-time{font-size:clamp(4.5rem,20vw,11rem); font-weight:800; text-align:center; line-height:1.1; font-variant-numeric:tabular-nums;}
+  .t-time.warn{color:var(--gold);}
+  .t-time.over{color:var(--danger);}
+  .t-list{padding-left:1.5em; font-size:1.05rem; line-height:1.9;}
+  .t-list li{cursor:pointer;}
+  .t-list li.cur{color:var(--accent); font-weight:800;}
+  .t-list li.done{color:var(--sub); text-decoration:line-through;}
+  summary{cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card center">
+    <h1>토론 도우미</h1>
+    <p class="sub">랜덤 조 편성 · 발언 순서 타이머</p>
+    <div class="row mt" style="justify-content:center">
+      <button class="btn-p" id="tab-group" onclick="tab('group')">👥 조 편성</button>
+      <button class="btn-o" id="tab-timer" onclick="tab('timer')">⏱ 발언 타이머</button>
+    </div>
+  </div>
+
+  <!-- 조 편성 -->
+  <div id="pane-group">
+    <div class="card">
+      <h2>참여자 명단</h2>
+      <textarea id="names" rows="6" placeholder="이름을 한 줄에 하나씩 (쉼표로 구분해도 됩니다)"></textarea>
+      <div class="row mt">
+        <select id="g-mode" style="width:auto"><option value="count">조 개수</option><option value="size">조당 인원</option></select>
+        <input type="number" id="g-num" min="1" value="4" style="width:90px">
+        <button class="btn-p" onclick="makeGroups()">🎲 랜덤 편성</button>
+      </div>
+      <p class="sub mt">명단은 이 브라우저에 저장됩니다. 조 안의 번호는 발언 순서로 쓸 수 있습니다.</p>
+    </div>
+    <div class="card hidden" id="g-card">
+      <h2>편성 결과</h2>
+      <div id="groups" class="groups"></div>
+    </div>
+  </div>
+
+  <!-- 발언 타이머 -->
+  <div id="pane-timer" class="hidden">
+    <div class="card">
+      <p class="sub center" id="t-step"></p>
+      <div class="t-stage" id="t-stage"></div>
+      <div class="t-time" id="t-time"></div>
+      <div class="row mt" style="justify-content:center">
+        <button class="btn-o" onclick="go(cur-1)">◀ 이전</button>
+        <button class="btn-g" id="t-go" onclick="startPause()"></button>
+        <button class="btn-o" onclick="go(cur)">🔄 다시</button>
+        <button class="btn-o" onclick="go(cur+1)">다음 ▶</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>발언 순서</h2>
+      <ol id="t-list" class="t-list"></ol>
+      <details class="mt"><summary class="sub">순서·시간 편집</summary>
+        <textarea id="stages" rows="8" class="mt" placeholder="한 줄에 하나: 단계 이름 + 시간 (예: 찬성 입론 3:00)"></textarea>
+        <button class="btn-p mt" onclick="applyStages()">적용</button>
+      </details>
+    </div>
+  </div>
+
+</div>
+<div id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+function tab(t){
+  ['group','timer'].forEach(x=>{ $('pane-'+x).classList.toggle('hidden', x!==t); $('tab-'+x).className = x===t? 'btn-p':'btn-o'; });
+}
+
+/* ---------- 조 편성 ---------- */
+function makeGroups(){
+  const names=$('names').value.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
+  const n=parseInt($('g-num').value);
+  if(names.length<2){ toast('이름을 2명 이상 입력하세요'); return; }
+  if(!(n>=1)){ toast('숫자를 1 이상 입력하세요'); return; }
+  localStorage.db_names=$('names').value;
+  const k=Math.min(names.length, $('g-mode').value==='size'? Math.ceil(names.length/n) : n);
+  for(let i=names.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [names[i],names[j]]=[names[j],names[i]]; }
+  const groups=Array.from({length:k},()=>[]);
+  names.forEach((nm,i)=>groups[i%k].push(nm));
+  $('groups').innerHTML = groups.map((g,i)=>`<div class="group"><h3>${i+1}조 <span class="sub">${g.length}명</span></h3>
+    <ol>${g.map(nm=>`<li>${esc(nm)}</li>`).join('')}</ol></div>`).join('');
+  $('g-card').classList.remove('hidden');
+}
+
+/* ---------- 발언 타이머 ---------- */
+const DEF_STAGES='찬성 입론 3:00\n반대 입론 3:00\n작전 회의 2:00\n반대 반론 2:00\n찬성 반론 2:00\n반대 최종 발언 1:30\n찬성 최종 발언 1:30';
+let stages=[], cur=0, left=0, endAt=null, tick=null, ac=null;
+function fmt(sec){ return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
+function parseStages(txt){
+  return txt.split('\n').map(s=>s.trim()).filter(Boolean).map(line=>{
+    const m=line.match(/^(.+?)\s+(\d+)(?::(\d{1,2}))?\s*분?$/);
+    return {line, name:m&&m[1], sec:m? parseInt(m[2])*60+parseInt(m[3]||0) : 0};
+  });
+}
+function applyStages(){
+  const list=parseStages($('stages').value), bad=list.find(s=>!s.sec);
+  if(!list.length){ toast('단계를 1개 이상 입력하세요'); return; }
+  if(bad){ toast('형식 오류: '+bad.line); return; }
+  stages=list; localStorage.db_stages=$('stages').value;
+  go(0); toast('적용되었습니다');
+}
+function go(i){
+  if(i<0) return;
+  if(i>=stages.length){ toast('마지막 단계입니다'); return; }
+  clearInterval(tick); tick=null; endAt=null;
+  cur=i; left=stages[i].sec*1000;
+  render();
+}
+function startPause(){
+  if(endAt){ left=endAt-Date.now(); endAt=null; clearInterval(tick); tick=null; }
+  else if(left>0){
+    if(!ac) ac=new (window.AudioContext||window.webkitAudioContext)(); // 클릭 시점에 만들어야 모바일에서도 소리 남
+    endAt=Date.now()+left; tick=setInterval(update,200);
+  }
+  render();
+}
+function update(){
+  left=Math.max(0, endAt-Date.now());
+  if(left) { showTime(); return; }
+  clearInterval(tick); tick=null; endAt=null;
+  beep(); render();
+}
+function beep(){
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.frequency.value=880; g.gain.value=0.3;
+  o.connect(g).connect(ac.destination);
+  o.start(); o.stop(ac.currentTime+1);
+}
+function showTime(){
+  const sec=Math.ceil(left/1000), el=$('t-time');
+  el.textContent=fmt(sec);
+  el.className='t-time'+(sec===0?' over':sec<=30?' warn':'');
+}
+function render(){
+  const next=stages[cur+1];
+  $('t-step').textContent=`${cur+1} / ${stages.length} 단계`+(next? ' · 다음: '+next.name : '');
+  $('t-stage').textContent=stages[cur].name;
+  $('t-go').textContent= endAt? '⏸ 일시정지' : '▶ 시작';
+  $('t-go').disabled= !endAt && !left;
+  $('t-list').innerHTML=stages.map((s,i)=>
+    `<li class="${i===cur?'cur':i<cur?'done':''}" onclick="go(${i})">${esc(s.name)} <span class="sub">${fmt(s.sec)}</span></li>`).join('');
+  showTime();
+}
+
+/* ---------- 시작 ---------- */
+$('names').value = localStorage.db_names || '';
+$('stages').value = localStorage.db_stages || DEF_STAGES;
+stages = parseStages($('stages').value);
+go(0);
+</script>
+</body>
+</html>

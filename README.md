@@ -9,6 +9,7 @@ Firebase Realtime Database 무료(Spark) 플랜 + GitHub Pages로 동작하며 �
 |---|---|---|
 | 라이브 투표 | [`/vote`](https://kkonoo.github.io/edu_tools/vote/)  | 찬반·객관식 투표(실시간 막대그래프), 워드클라우드, Q&A(좋아요 정렬) |
 | 라이브 퀴즈 | [`/quiz`](https://kkonoo.github.io/edu_tools/quiz/) | 정답 채점, 점수 집계 |
+| 토론 도우미 | [`/debate`](https://kkonoo.github.io/edu_tools/debate/) | 랜덤 조 편성(조 안 번호 = 발언 순서), 단계별 발언 타이머(순서·시간 편집 가능) |
 
 ## 사용법
 
@@ -26,6 +27,7 @@ Firebase Realtime Database 무료(Spark) 플랜 + GitHub Pages로 동작하며 �
 
 - 각 도구는 단일 `index.html` (별도 빌드·서버 없음)
 - 데이터: Firebase Realtime Database (`sessions/{코드}` 하위에 저장)
+  - 토론 도우미는 Firebase를 쓰지 않음 — 진행자 화면(빔프로젝터)에서만 동작하고 명단·순서는 브라우저에 저장
 - 새로 설치하려면 Firebase 프로젝트 생성 후 `index.html`의 `firebaseConfig`에 본인 설정값 입력 — 자세한 절차는 `설치가이드.md` 참고
 
 ## 주의
