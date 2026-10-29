@@ -321,7 +321,6 @@ body.screen-mode .topbar { display: none; }
 .s-wait-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 48px 96px; }
 .s-wait .code-label { font-size: 22px; }
 .s-wait .code-big { font-size: clamp(96px, 13vw, 200px); }
-.s-wait .link { font-size: 18px; }
 .s-wait .s-count { margin-top: 28px; color: rgba(255, 255, 255, .85); font-size: 26px; }
 .s-wait .s-count b { color: #fff; font-variant-numeric: tabular-nums; }
 .s-wait .qr { padding: 18px; border-radius: 20px; }

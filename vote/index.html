@@ -374,8 +374,7 @@ function screenRender(){
     const url=baseUrl()+'?s='+code;
     box.innerHTML=`<div class="head s-wait"><div class="s-wait-in">
       <div><p class="code-label">참여 코드</p>
-        <div class="code-big">${esc(code)}</div>
-        <p class="link">${esc(url)}</p></div>
+        <div class="code-big">${esc(code)}</div></div>
       <div id="s-qr" class="qr"></div></div></div>`;
     new QRCode($('s-qr'), {text:url, width:280, height:280});
     return;
