@@ -372,11 +372,8 @@ function screenRender(){
   const box=$('s-body'), a=currentId&&acts[currentId];
   if(!a){
     const url=baseUrl()+'?s='+code;
-    box.innerHTML=`<div class="head s-wait"><div class="s-wait-in">
-      <div><p class="code-label">참여 코드</p>
-        <div class="code-big">${esc(code)}</div></div>
-      <div id="s-qr" class="qr"></div></div></div>`;
-    new QRCode($('s-qr'), {text:url, width:280, height:280});
+    box.innerHTML=`<div class="head s-wait"><div class="s-wait-in"><div id="s-qr" class="qr"></div></div></div>`;
+    new QRCode($('s-qr'), {text:url, width:480, height:480});
     return;
   }
   const head=`<div class="s-meta"><span>${TYPE_LABEL[a.type]}</span><span>참여 코드 <b>${esc(code)}</b></span></div>

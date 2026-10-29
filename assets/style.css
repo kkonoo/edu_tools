@@ -316,14 +316,13 @@ body.screen-mode .topbar { display: none; }
 .screen .q-item { padding: 18px 22px; }
 .screen .q-text { font-size: 26px; }
 .screen .like-btn { height: 44px; padding: 0 18px; font-size: 22px; }
-/* 대기 화면: 참여 코드 + QR */
+/* 대기 화면: 학생은 주소를 모르니 QR만 크게 */
 .s-wait { display: grid; place-items: center; min-height: 100vh; padding: 40px; }
-.s-wait-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 48px 96px; }
-.s-wait .code-label { font-size: 22px; }
-.s-wait .code-big { font-size: clamp(96px, 13vw, 200px); }
-.s-wait .s-count { margin-top: 28px; color: rgba(255, 255, 255, .85); font-size: 26px; }
+.s-wait-in { display: flex; flex-direction: column; align-items: center; gap: 28px; }
+.s-wait .s-count { color: rgba(255, 255, 255, .85); font-size: 26px; }
 .s-wait .s-count b { color: #fff; font-variant-numeric: tabular-nums; }
-.s-wait .qr { padding: 18px; border-radius: 20px; }
+.s-wait .qr { padding: 20px; border-radius: 22px; }
+.s-wait .qr img, .s-wait .qr canvas { width: min(62vh, 480px); height: auto; }
 /* 발표 화면 아래 조작 막대: 평소엔 흐리게, 마우스를 올리면 진하게 */
 #s-ctrl {
   position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px;

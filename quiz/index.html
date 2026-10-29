@@ -450,11 +450,9 @@ function screenRender(){
   if(!state){
     const url=baseUrl()+'?s='+code;
     box.innerHTML=`<div class="head s-wait"><div class="s-wait-in">
-      <div><p class="code-label">참여 코드</p>
-        <div class="code-big">${esc(code)}</div>
-        <p class="s-count">참가자 <b>${np}</b>명</p></div>
-      <div id="s-qr" class="qr"></div></div></div>`;
-    new QRCode($('s-qr'), {text:url, width:280, height:280});
+      <div id="s-qr" class="qr"></div>
+      <p class="s-count">참가자 <b>${np}</b>명</p></div></div>`;
+    new QRCode($('s-qr'), {text:url, width:480, height:480});
     return;
   }
   if(state.phase==='board'){ box.innerHTML='<div class="screen"><h1 class="s-q">리더보드</h1>'+renderBoard()+'</div>'; return; }
