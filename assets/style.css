@@ -32,7 +32,6 @@
   --radius: 16px;
   /* 머리 띠 — 두 테마 공통 */
   --deep: #0A1A33;
-  --deep-2: #0D2547;
   --hi: #9CC2FF;
   color-scheme: only light;   /* only = 삼성 인터넷이 강제로 어둡게 바꾸지 않게 */
 }
@@ -98,10 +97,7 @@ body[data-view="scr-part"] .nav, body[data-view="scr-name"] .nav { display: none
 
 /* ---------- 진한 머리 띠 ---------- */
 .head {
-  color: #fff; padding: 56px 0 52px;
-  background:
-    radial-gradient(900px 420px at 88% 0%, rgba(31, 79, 158, .75) 0%, transparent 62%),
-    linear-gradient(160deg, var(--deep) 0%, var(--deep-2) 100%);
+  color: #fff; padding: 56px 0 52px; background: var(--deep);
 }
 .eyebrow { display: block; margin-bottom: 10px; font-size: 14px; font-weight: 700; letter-spacing: .02em; color: var(--hi); }
 .eyebrow:empty { display: none; }
