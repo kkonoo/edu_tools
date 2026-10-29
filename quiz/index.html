@@ -76,7 +76,7 @@
 <div id="scr-config" class="hidden">
   <section class="head"><div class="wrap"><span class="eyebrow">라이브 퀴즈</span><h1>초기 설정 필요</h1></div></section>
   <main class="wrap narrow">
-    <div class="card"><p>파일 하단 <b>firebaseConfig</b>에 Firebase 설정값을 넣어야 합니다.</p></div>
+    <div class="card"><p>파일 하단 <b>firebaseConfig</b>에 Firebase 설정값을 넣어야 해요.</p></div>
   </main>
 </div>
 
@@ -102,7 +102,7 @@
         <button class="btn-p" onclick="createSession()">새 퀴즈 만들기</button>
       </div>
       <div id="my-sessions"></div>
-      <label class="field-label" for="host-code">다른 브라우저에서 만든 퀴즈을(를) 코드로 열기</label>
+      <label class="field-label" for="host-code">다른 브라우저에서 만든 퀴즈를 코드로 열기</label>
       <div class="row">
         <input type="text" id="host-code" class="grow code" maxlength="4" placeholder="코드 4자리">
         <button class="btn-o" onclick="hostByCode()">진행자로 열기</button>
@@ -163,7 +163,7 @@
 
       <div class="card sticky">
         <div class="card-head"><h2>실시간 현황</h2><span class="badge live hidden" id="live-badge">LIVE</span></div>
-        <div id="h-results"><p class="waiting">출제 중인 문항이 없습니다</p></div>
+        <div id="h-results"><p class="waiting">출제 중인 문항이 없어요</p></div>
       </div>
     </div>
   </main>
@@ -260,7 +260,7 @@ function hostByCode(){
   const c=$('host-code').value.trim().toUpperCase();
   if(c.length!==4){ toast('코드 4자리를 입력하세요'); return; }
   db.ref('sessions/'+c+'/created').get().then(s=>{
-    if(!s.exists()){ toast('퀴즈을(를) 찾을 수 없습니다'); return; }
+    if(!s.exists()){ toast('퀴즈를 찾을 수 없어요'); return; }
     db.ref('sessions/'+c+'/name').get().then(ns=>{
       const mine=myList();
       if(!mine.some(e=>e.c===c)){ mine.unshift({c:c, n:ns.val()||''}); saveList(mine); }
@@ -272,7 +272,7 @@ function delSession(c){
   if(!confirm(c+' 퀴즈와 모든 기록을 삭제할까요?')) return;
   db.ref('sessions/'+c).remove();
   saveList(myList().filter(e=>e.c!==c));
-  renderMySessions(); toast('삭제되었습니다');
+  renderMySessions(); toast('삭제했어요');
 }
 function createSession(){
   const name=$('sess-name').value.trim();
@@ -306,7 +306,7 @@ function joinByInput(){
 }
 function joinSession(c){
   db.ref('sessions/'+c+'/created').get().then(s=>{
-    if(!s.exists()){ toast('퀴즈를 찾을 수 없습니다'); show('scr-home'); return; }
+    if(!s.exists()){ toast('퀴즈를 찾을 수 없어요'); show('scr-home'); return; }
     code=c; isHost=false;
     const saved = localStorage['qz_name_'+code];
     if(saved){ enterAs(saved); } else { show('scr-name'); $('nick').focus(); }
@@ -340,14 +340,14 @@ function addQuestion(){
   const top=parseInt($('new-top').value)||3;
   if(!q){ toast('문제를 입력하세요'); return; }
   if(opts.length<2){ toast('보기를 2개 이상 입력하세요'); return; }
-  if(!(ans>=1 && ans<=opts.length)){ toast('정답 번호가 보기 범위를 벗어났습니다'); return; }
+  if(!(ans>=1 && ans<=opts.length)){ toast('정답 번호가 보기 범위를 벗어났어요'); return; }
   if(editingId){
     const ts=(questions[editingId]&&questions[editingId].ts)||null;
     ref('questions/'+editingId).set({text:q, options:opts, answer:ans-1, top, ts})
-      .then(()=>{ toast('수정되었습니다'); cancelEdit(); });
+      .then(()=>{ toast('수정했어요'); cancelEdit(); });
   } else {
     ref('questions').push({text:q, options:opts, answer:ans-1, top, ts:firebase.database.ServerValue.TIMESTAMP})
-      .then(()=>{ $('new-q').value=''; $('new-opts').value=''; $('new-ans').value=1; toast('문항이 추가되었습니다'); });
+      .then(()=>{ $('new-q').value=''; $('new-opts').value=''; $('new-ans').value=1; toast('문항을 추가했어요'); });
   }
 }
 function editQ(id){
@@ -381,16 +381,16 @@ function renderQList(){
         <button class="btn-o btn-sm" onclick="editQ('${id}')">수정</button>` : ''}
         <button class="btn-danger btn-sm" onclick="delQ('${id}')">삭제</button>
       </div></div>`;
-  }).join('') : '<p class="sub">아직 문항이 없습니다.</p>';
+  }).join('') : '<p class="sub">아직 문항이 없어요.</p>';
 }
 function startQ(id){ ref('state').set({qid:id, phase:'ans', t0:firebase.database.ServerValue.TIMESTAMP}); }
 function reveal(){ if(state&&state.qid) ref('state').set({qid:state.qid, phase:'rev', t0:state.t0||null}); }
 function showBoard(){ ref('state').set({phase:'board'}); }
 function stopAll(){ ref('state').set(null); }
 function resetSession(){
-  if(!confirm('모든 답변·참가자·점수를 지우고 처음 상태로 되돌릴까요?\n(문항과 참여 코드는 그대로 유지됩니다)')) return;
+  if(!confirm('모든 답변·참가자·점수를 지우고 처음 상태로 되돌릴까요?\n(문항과 참여 코드는 그대로 남아요)')) return;
   ref().update({answers:null, players:null, state:null, round:firebase.database.ServerValue.TIMESTAMP})
-    .then(()=>toast('초기화되었습니다'));
+    .then(()=>toast('초기화했어요'));
 }
 function delQ(id){
   if(!confirm('이 문항과 답변을 삭제할까요?')) return;
@@ -403,7 +403,7 @@ function hostResults(){
   const box=$('h-results');
   $('live-badge').classList.toggle('hidden', !state);
   if(ansListener){ ansListener.off(); ansListener=null; }
-  if(!state){ box.innerHTML='<p class="waiting">출제 중인 문항이 없습니다</p>'; return; }
+  if(!state){ box.innerHTML='<p class="waiting">출제 중인 문항이 없어요</p>'; return; }
   if(state.phase==='board'){ box.innerHTML='<div class="result-title">리더보드</div>'+renderBoard(); return; }
   const q=questions[state.qid]; if(!q) return;
   ansListener = ref('answers/'+state.qid);
@@ -432,7 +432,7 @@ function renderFastest(q, answers){
     .sort((x,y)=>answers[x].t-answers[y].t)
     .slice(0,n);
   let html=`<div class="section-title">선착순 정답자 TOP ${n}</div>`;
-  if(!list.length) return html+'<p class="sub">정답자가 없습니다</p>';
+  if(!list.length) return html+'<p class="sub">정답자가 없어요</p>';
   return html+list.map((id,i)=>{
     const sec = t0? ((answers[id].t-t0)/1000).toFixed(1)+'초' : '';
     return `<div class="lb-row ${i===0?'top1':''}">
@@ -442,7 +442,7 @@ function renderFastest(q, answers){
 }
 function renderBoard(){
   const ids=Object.keys(players);
-  if(!ids.length) return '<p class="waiting">참가자가 없습니다</p>';
+  if(!ids.length) return '<p class="waiting">참가자가 없어요</p>';
   ids.sort((a,b)=>(players[b].score||0)-(players[a].score||0));
   return ids.slice(0,10).map((id,i)=>`
     <div class="lb-row ${i===0?'top1':''}">
@@ -456,7 +456,7 @@ let lastQid=null, sAnsRef=null, sAnswers={}, srvOffset=0, sTimer=null;
 function openScreenWin(){ window.open(baseUrl()+'?s='+code+'&view=screen', 'qz_screen'); }
 function openScreen(c){
   db.ref('sessions/'+c+'/created').get().then(s=>{
-    if(!s.exists()){ toast('퀴즈를 찾을 수 없습니다'); show('scr-home'); return; }
+    if(!s.exists()){ toast('퀴즈를 찾을 수 없어요'); show('scr-home'); return; }
     code=c; document.body.classList.add('screen-mode');
     db.ref('.info/serverTimeOffset').on('value', s=>{ srvOffset=s.val()||0; });
     ref('questions').on('value', s=>{ questions=s.val()||{}; screenRender(); });
@@ -505,14 +505,14 @@ function screenRender(){
 }
 function nextQ(){
   const ids=Object.keys(questions), i = lastQid? ids.indexOf(lastQid)+1 : 0;
-  if(i>=ids.length){ toast('마지막 문제입니다'); return; }
+  if(i>=ids.length){ toast('마지막 문제예요'); return; }
   startQ(ids[i]);
 }
 
 /* ---------- 참여자 ---------- */
 function partBody(){
   const box=$('p-body');
-  if(!state){ box.innerHTML='<p class="waiting">진행자가 문항을 출제하면 여기에 표시됩니다…</p>'; return; }
+  if(!state){ box.innerHTML='<p class="waiting">진행자가 문항을 출제하면 여기에 나와요…</p>'; return; }
   if(state.phase==='board'){
     ref('players').get().then(s=>{ players=s.val()||{}; box.innerHTML='<div class="result-title">리더보드</div>'+renderBoard(); });
     return;
@@ -553,7 +553,7 @@ function partBody(){
 function answer(i){
   ref('answers/'+state.qid+'/'+clientId).set({a:i, t:firebase.database.ServerValue.TIMESTAMP}).then(()=>{
     localStorage['qz_a_'+code+rk()+'_'+state.qid]=String(i);
-    partBody(); toast('제출되었습니다');
+    partBody(); toast('제출했어요');
   });
 }
 </script>

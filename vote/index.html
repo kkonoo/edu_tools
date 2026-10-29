@@ -33,8 +33,8 @@
   <section class="head"><div class="wrap"><span class="eyebrow">라이브 투표</span><h1>초기 설정 필요</h1></div></section>
   <main class="wrap narrow">
     <div class="card">
-      <p>이 파일 하단 <b>firebaseConfig</b> 부분에 Firebase 설정값을 붙여넣어야 합니다.
-      함께 있는 <b>설치가이드.md</b>를 따라 5분이면 끝납니다.</p>
+      <p>이 파일 하단 <b>firebaseConfig</b> 부분에 Firebase 설정값을 붙여 넣어야 해요.
+      함께 있는 <b>설치가이드.md</b>를 따라 하면 5분이면 끝나요.</p>
     </div>
   </main>
 </div>
@@ -61,7 +61,7 @@
         <button class="btn-p" onclick="createSession()">새 세션 만들기</button>
       </div>
       <div id="my-sessions"></div>
-      <label class="field-label" for="host-code">다른 브라우저에서 만든 세션을(를) 코드로 열기</label>
+      <label class="field-label" for="host-code">다른 브라우저에서 만든 세션을 코드로 열기</label>
       <div class="row">
         <input type="text" id="host-code" class="grow code" maxlength="4" placeholder="코드 4자리">
         <button class="btn-o" onclick="hostByCode()">진행자로 열기</button>
@@ -110,7 +110,7 @@
 
         <div class="card">
           <h2>활동 목록</h2>
-          <p class="hint mb">「시작」을 누르면 참여자 화면에 해당 활동이 표시됩니다.</p>
+          <p class="hint mb">「시작」을 누르면 참여자 화면에 그 활동이 나와요.</p>
           <div id="act-list"></div>
           <div class="reset-row"><button class="btn-danger btn-sm" onclick="resetSession()">응답 초기화</button>
             <span class="hint">활동 목록은 유지, 모든 응답만 삭제 (다른 수업에서 재사용)</span></div>
@@ -119,7 +119,7 @@
 
       <div class="card sticky">
         <div class="card-head"><h2>실시간 결과</h2><span class="badge live hidden" id="live-badge">LIVE</span></div>
-        <div id="h-results"><p class="waiting">진행 중인 활동이 없습니다</p></div>
+        <div id="h-results"><p class="waiting">진행 중인 활동이 없어요</p></div>
       </div>
     </div>
   </main>
@@ -130,7 +130,7 @@
   <main class="wrap narrow">
     <div class="card">
       <p class="part-meta"><span>세션 <b id="p-code"></b></span></p>
-      <div id="p-body"><p class="waiting">진행자가 활동을 시작하면 여기에 표시됩니다…</p></div>
+      <div id="p-body"><p class="waiting">진행자가 활동을 시작하면 여기에 나와요…</p></div>
     </div>
   </main>
 </div>
@@ -188,7 +188,7 @@ function hostByCode(){
   const c=$('host-code').value.trim().toUpperCase();
   if(c.length!==4){ toast('코드 4자리를 입력하세요'); return; }
   db.ref('sessions/'+c+'/created').get().then(s=>{
-    if(!s.exists()){ toast('세션을(를) 찾을 수 없습니다'); return; }
+    if(!s.exists()){ toast('세션을 찾을 수 없어요'); return; }
     db.ref('sessions/'+c+'/name').get().then(ns=>{
       const mine=myList();
       if(!mine.some(e=>e.c===c)){ mine.unshift({c:c, n:ns.val()||''}); saveList(mine); }
@@ -200,7 +200,7 @@ function delSession(c){
   if(!confirm(c+' 세션과 모든 응답을 삭제할까요?')) return;
   db.ref('sessions/'+c).remove();
   saveList(myList().filter(e=>e.c!==c));
-  renderMySessions(); toast('삭제되었습니다');
+  renderMySessions(); toast('삭제했어요');
 }
 function createSession(){
   const name=$('sess-name').value.trim();
@@ -232,7 +232,7 @@ function joinByInput(){
 }
 function joinSession(c){
   db.ref('sessions/'+c+'/created').get().then(s=>{
-    if(!s.exists()){ toast('세션을 찾을 수 없습니다'); show('scr-home'); return; }
+    if(!s.exists()){ toast('세션을 찾을 수 없어요'); show('scr-home'); return; }
     code=c; isHost=false;
     $('p-code').textContent=code;
     ref('round').on('value', s=>{ round=s.val(); partBody(); });
@@ -261,14 +261,14 @@ function addActivity(){
   }
   if(editingId){
     act.ts = (acts[editingId]&&acts[editingId].ts)||null;
-    ref('activities/'+editingId).set(act).then(()=>{ toast('수정되었습니다'); cancelEdit(); });
+    ref('activities/'+editingId).set(act).then(()=>{ toast('수정했어요'); cancelEdit(); });
   } else {
-    ref('activities').push(act).then(()=>{ $('new-title').value=''; toast('추가되었습니다'); });
+    ref('activities').push(act).then(()=>{ $('new-title').value=''; toast('추가했어요'); });
   }
 }
 function editAct(id){
   const a=acts[id]; if(!a) return;
-  if(id===currentId){ toast('진행 중인 활동은 중지 후 수정하세요'); return; }
+  if(id===currentId){ toast('진행 중인 활동은 중지한 뒤 수정하세요'); return; }
   editingId=id;
   $('new-type').value = a.type;
   onTypeChange();
@@ -316,13 +316,13 @@ function renderActList(){
         <button class="btn-o btn-sm" onclick="editAct('${id}')">수정</button>
         <button class="btn-danger btn-sm" onclick="delAct('${id}')">삭제</button>
       </div></div>`;
-  }).join('') : '<p class="sub">아직 활동이 없습니다.</p>';
+  }).join('') : '<p class="sub">아직 활동이 없어요.</p>';
 }
 function setCurrent(id){ ref('current').set(id); }
 function resetSession(){
-  if(!confirm('모든 응답(투표·단어·질문)을 지우고 처음 상태로 되돌릴까요?\n(활동 목록과 참여 코드는 그대로 유지됩니다)')) return;
+  if(!confirm('모든 응답(투표·단어·질문)을 지우고 처음 상태로 되돌릴까요?\n(활동 목록과 참여 코드는 그대로 남아요)')) return;
   ref().update({responses:null, current:null, round:firebase.database.ServerValue.TIMESTAMP})
-    .then(()=>toast('초기화되었습니다'));
+    .then(()=>toast('초기화했어요'));
 }
 function delAct(id){
   if(!confirm('이 활동과 응답을 삭제할까요?')) return;
@@ -335,7 +335,7 @@ function hostResults(){
   if(resListener) resListener.off();
   const box=$('h-results');
   $('live-badge').classList.toggle('hidden', !currentId);
-  if(!currentId){ box.innerHTML='<p class="waiting">진행 중인 활동이 없습니다</p>'; return; }
+  if(!currentId){ box.innerHTML='<p class="waiting">진행 중인 활동이 없어요</p>'; return; }
   const a=acts[currentId]; if(!a) return;
   resListener = ref('responses/'+currentId);
   resListener.on('value', s=>{ box.innerHTML = `<div class="result-title">${esc(a.title)}</div>` + renderResult(a, s.val()||{}, true); });
@@ -346,7 +346,7 @@ let partResListener=null;
 function partBody(){
   if(partResListener){ partResListener.off(); partResListener=null; }
   const box=$('p-body');
-  if(!currentId){ box.innerHTML='<p class="waiting">진행자가 활동을 시작하면 여기에 표시됩니다…</p>'; return; }
+  if(!currentId){ box.innerHTML='<p class="waiting">진행자가 활동을 시작하면 여기에 나와요…</p>'; return; }
   ref('activities/'+currentId).get().then(s=>{
     const a=s.val(); if(!a) return;
     if(a.type==='poll') partPoll(a);
@@ -367,7 +367,7 @@ function partPoll(a){
 function vote(i){
   ref('responses/'+currentId+'/votes/'+clientId).set(i).then(()=>{
     localStorage['lv_v_'+currentId+rk()]=String(i);
-    partBody(); toast('제출되었습니다');
+    partBody(); toast('제출했어요');
   });
 }
 function partCloud(a){
@@ -384,10 +384,10 @@ function partCloud(a){
 function sendWord(){
   const w=$('cw').value.trim(); if(!w) return;
   const key='lv_w_'+currentId+rk(), n=parseInt(localStorage[key]||'0');
-  if(n>=cloudLimit){ toast('기기당 최대 '+cloudLimit+'개까지 제출할 수 있습니다'); return; }
+  if(n>=cloudLimit){ toast('기기당 최대 '+cloudLimit+'개까지 제출할 수 있어요'); return; }
   ref('responses/'+currentId+'/words/'+clientId).push(w.slice(0,20)).then(()=>{
     localStorage[key]=String(n+1);
-    $('cw').value=''; toast('제출되었습니다 ('+(n+1)+'/'+cloudLimit+')');
+    $('cw').value=''; toast('제출했어요 ('+(n+1)+'/'+cloudLimit+')');
   });
 }
 function partQna(a){
@@ -402,7 +402,7 @@ function partQna(a){
 function sendQ(){
   const t=$('qt').value.trim(); if(!t) return;
   ref('responses/'+currentId+'/qna').push({text:t.slice(0,300), ts:firebase.database.ServerValue.TIMESTAMP});
-  $('qt').value=''; toast('질문이 등록되었습니다');
+  $('qt').value=''; toast('질문을 보냈어요');
 }
 function toggleLike(qid){
   const r = ref('responses/'+currentId+'/qna/'+qid+'/likes/'+clientId);
@@ -433,7 +433,7 @@ function renderCloud(words){
     });
   });
   const keys=Object.keys(freq);
-  if(!keys.length) return '<p class="waiting">아직 제출된 단어가 없습니다</p>';
+  if(!keys.length) return '<p class="waiting">아직 제출된 단어가 없어요</p>';
   const max=Math.max(...keys.map(k=>freq[k]));
   keys.sort(()=>Math.random()-.5);
   return '<div class="cloud">'+keys.map(k=>{
@@ -443,7 +443,7 @@ function renderCloud(words){
 }
 function renderQna(qna, likable){
   const ids=Object.keys(qna);
-  if(!ids.length) return '<p class="waiting">아직 질문이 없습니다</p>';
+  if(!ids.length) return '<p class="waiting">아직 질문이 없어요</p>';
   ids.sort((x,y)=>{
     const lx=Object.keys(qna[x].likes||{}).length, ly=Object.keys(qna[y].likes||{}).length;
     return ly-lx || (qna[x].ts||0)-(qna[y].ts||0);

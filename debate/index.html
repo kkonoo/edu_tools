@@ -93,13 +93,13 @@
   <div id="pane-group">
     <div class="card">
       <h2>참여자 명단</h2>
-      <textarea id="names" rows="6" placeholder="이름을 한 줄에 하나씩 (쉼표로 구분해도 됩니다)"></textarea>
+      <textarea id="names" rows="6" placeholder="이름을 한 줄에 하나씩 (쉼표로 구분해도 돼요)"></textarea>
       <div class="row mt">
         <select id="g-mode" class="auto"><option value="count">조 개수</option><option value="size">조당 인원</option></select>
         <input type="number" id="g-num" class="num" min="1" value="4">
         <button class="btn-p" onclick="makeGroups()">랜덤 편성</button>
       </div>
-      <p class="hint mt">명단은 이 브라우저에 저장됩니다. 조 안의 번호는 발언 순서로 쓸 수 있습니다.</p>
+      <p class="hint mt">명단은 이 브라우저에 저장돼요. 조 안의 번호는 발언 순서로 쓸 수 있어요.</p>
     </div>
     <div class="card hidden" id="g-card">
       <h2>편성 결과</h2>
@@ -174,11 +174,11 @@ function applyStages(){
   if(!list.length){ toast('단계를 1개 이상 입력하세요'); return; }
   if(bad){ toast('형식 오류: '+bad.line); return; }
   stages=list; localStorage.db_stages=$('stages').value;
-  go(0); toast('적용되었습니다');
+  go(0); toast('적용했어요');
 }
 function go(i){
   if(i<0) return;
-  if(i>=stages.length){ toast('마지막 단계입니다'); return; }
+  if(i>=stages.length){ toast('마지막 단계예요'); return; }
   clearInterval(tick); tick=null; endAt=null;
   cur=i; left=stages[i].sec*1000;
   render();
