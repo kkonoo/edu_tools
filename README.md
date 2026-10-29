@@ -7,7 +7,7 @@ Firebase Realtime Database 무료(Spark) 플랜 + GitHub Pages로 동작하며 �
 
 | 도구 | 경로 | 기능 |
 |---|---|---|
-| 라이브 투표 | [`/vote`](https://kkonoo.github.io/edu_tools/vote/)  | 찬반·객관식 투표(실시간 막대그래프), 워드클라우드, Q&A(좋아요 정렬) |
+| 라이브 투표 | [`/vote`](https://kkonoo.github.io/edu_tools/vote/)  | 찬반·객관식 투표(실시간 막대그래프), 워드클라우드, Q&A(좋아요 정렬), 발표 화면 |
 | 라이브 퀴즈 | [`/quiz`](https://kkonoo.github.io/edu_tools/quiz/) | 정답 채점, 점수 집계 |
 | 토론 도우미 | [`/debate`](https://kkonoo.github.io/edu_tools/debate/) | 랜덤 조 편성(조 안 번호 = 발언 순서), 단계별 발언 타이머(순서·시간 편집 가능) |
 
@@ -15,8 +15,8 @@ Firebase Realtime Database 무료(Spark) 플랜 + GitHub Pages로 동작하며 �
 
 **진행자**
 1. `https://kkonoo.github.io/edu_tools/vote/` 접속 → **새 세션 만들기**
-2. 4자리 참여 코드와 QR이 생성됨 → 빔프로젝터에 표시
-3. 활동(찬반 투표, 워드클라우드, Q&A)을 추가하고 **시작** → 실시간 결과 확인
+2. 4자리 참여 코드와 QR이 생성됨 → **발표 화면 열기**로 새 창을 띄워 빔프로젝터에 표시 (활동 만들기·목록 같은 관리 화면은 학생에게 안 보임)
+3. 활동(찬반 투표, 워드클라우드, Q&A)을 추가하고 **시작** → 실시간 결과 확인. 발표 화면 아래 조작 막대(마우스를 올리면 진해짐)의 **다음 활동**·**대기 화면**으로도 진행 가능
 4. 세션 코드는 브라우저에 저장되어 「내 세션 다시 열기」로 재사용 가능
 
 **참여자 (학생)**
