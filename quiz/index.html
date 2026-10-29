@@ -4,194 +4,208 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>라이브 퀴즈</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563C9'/%3E%3Crect x='8' y='15' width='4' height='9' rx='2' fill='%23fff'/%3E%3Crect x='14' y='8' width='4' height='16' rx='2' fill='%23fff'/%3E%3Crect x='20' y='12' width='4' height='12' rx='2' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/theme.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
-  :root{
-    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --sub:#6b7280;
-    --accent:#3b5bdb; --accent2:#12b886; --danger:#e03131; --line:#e5e8f0; --gold:#f59f00;
+  .inline-field > input, .inline-field > select { font-weight: 500; }
+  /* 발표 화면 (빔프로젝터) */
+  body.screen-mode { background: var(--bg); }
+  body.screen-mode .topbar { display: none; }
+  .screen { max-width: 1440px; margin: 0 auto; padding: 48px 48px 120px; }
+  .s-meta { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 12px; color: var(--muted); font-size: 20px; font-weight: 600; }
+  .s-meta b { color: var(--text); letter-spacing: .06em; }
+  .s-q { margin-bottom: 32px; font-size: clamp(32px, 3.4vw, 52px); font-weight: 800; line-height: 1.3; letter-spacing: -.03em; }
+  .s-opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .s-opt {
+    display: flex; align-items: center; gap: 20px; min-height: 104px; padding: 20px 24px;
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow);
+    font-size: clamp(22px, 2.2vw, 34px); font-weight: 700; line-height: 1.3;
   }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  body{font-family:'Apple SD Gothic Neo','Malgun Gothic',Pretendard,sans-serif; background:var(--bg); color:var(--ink); min-height:100vh;}
-  .wrap{max-width:860px; margin:0 auto; padding:20px 16px 60px;}
-  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(20,30,60,.05);}
-  h1{font-size:1.5rem; margin-bottom:6px;}
-  h2{font-size:1.15rem; margin-bottom:12px;}
-  .sub{color:var(--sub); font-size:.9rem;}
-  button{font:inherit; cursor:pointer; border:none; border-radius:10px; padding:12px 18px; font-weight:600;}
-  .btn-p{background:var(--accent); color:#fff;}
-  .btn-g{background:var(--accent2); color:#fff;}
-  .btn-y{background:var(--gold); color:#fff;}
-  .btn-o{background:#fff; color:var(--ink); border:1.5px solid var(--line);}
-  .btn-sm{padding:7px 12px; font-size:.85rem; border-radius:8px;}
-  .btn-danger{background:#fff; color:var(--danger); border:1.5px solid #ffc9c9;}
-  button:disabled{opacity:.45; cursor:not-allowed;}
-  input[type=text],input[type=number],textarea,select{font:inherit; width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; background:#fff;}
-  input:focus,textarea:focus{outline:2px solid var(--accent); border-color:transparent;}
-  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
-  .grow{flex:1; min-width:140px;}
-  .hidden{display:none !important;}
-  .code-big{font-size:2.6rem; font-weight:800; letter-spacing:.15em; color:var(--accent);}
-  #qrbox{background:#fff; padding:10px; border-radius:10px; display:inline-block;}
-  .opt-btn{display:block; width:100%; text-align:left; margin-bottom:10px; padding:16px; font-size:1.05rem; background:#fff; border:2px solid var(--line); border-radius:12px; transition:.15s;}
-  .opt-btn:hover{border-color:var(--accent);}
-  .opt-btn.sel{border-color:var(--accent); background:#edf2ff;}
-  .opt-btn.correct{border-color:var(--accent2); background:#e6fcf5;}
-  .opt-btn.wrong{border-color:#ffc9c9; background:#fff5f5;}
-  .bar-row{margin-bottom:12px;}
-  .bar-label{display:flex; justify-content:space-between; font-size:.95rem; margin-bottom:4px;}
-  .bar-track{background:#eef0f6; border-radius:8px; height:26px; overflow:hidden;}
-  .bar-fill{height:100%; border-radius:8px; background:var(--accent); transition:width .4s; min-width:2px;}
-  .bar-fill.ok{background:var(--accent2);}
-  .q-item{border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px;}
-  .q-item.live{border-color:var(--accent2); box-shadow:0 0 0 2px #c3fae8;}
-  .badge{font-size:.72rem; padding:3px 8px; border-radius:20px; background:#eef0f6; color:var(--sub); font-weight:700;}
-  .badge.live{background:#12b886; color:#fff;}
-  .center{text-align:center;}
-  .mt{margin-top:14px;} .mb{margin-bottom:14px;}
-  .waiting{font-size:1.2rem; color:var(--sub); text-align:center; padding:50px 0;}
-  #toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 20px; border-radius:24px; font-size:.9rem; opacity:0; transition:.3s; pointer-events:none; z-index:50;}
-  #toast.show{opacity:1;}
-  .result-title{font-size:1.35rem; font-weight:800; margin-bottom:16px;}
-  .lb-row{display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px; font-size:1.05rem;}
-  .lb-row.top1{background:#fff9db; border-color:#ffe066;}
-  .lb-rank{font-weight:800; width:2.2em; color:var(--sub);}
-  .big-feedback{font-size:2rem; font-weight:800; text-align:center; padding:30px 0;}
-  .ok-txt{color:var(--accent2);} .no-txt{color:var(--danger);}
-  .score-pill{background:#edf2ff; color:var(--accent); border-radius:20px; padding:4px 12px; font-weight:700; display:inline-block;}
-  /* 발표 화면 */
-  body.screen-mode .wrap{max-width:1200px; padding-bottom:90px;}
-  body.screen-mode .result-title{font-size:2.4rem;}
-  body.screen-mode .sub{font-size:1.2rem;}
-  body.screen-mode .bar-label{font-size:1.4rem;}
-  body.screen-mode .bar-track{height:40px;}
-  body.screen-mode .lb-row{font-size:1.6rem; padding:14px 20px;}
-  .s-opt{font-size:1.8rem; padding:18px 22px; border:2px solid var(--line); border-radius:14px; margin-bottom:12px; display:flex; align-items:center; gap:16px;}
-  .s-num{background:var(--accent); color:#fff; border-radius:50%; width:2.4rem; height:2.4rem; display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:1.3rem; flex:none;}
-  .s-count{font-size:1.6rem;}
-  #s-ctrl{position:fixed; bottom:12px; left:50%; transform:translateX(-50%); display:flex; gap:8px; background:rgba(255,255,255,.92); border:1px solid var(--line); border-radius:12px; padding:6px; opacity:.3; transition:.2s;}
-  #s-ctrl:hover{opacity:1;}
-  @media(max-width:600px){ .code-big{font-size:2rem;} }
+  .s-num { flex: none; display: inline-grid; place-items: center; width: 56px; height: 56px; border-radius: 14px; background: var(--accent); color: var(--on-accent); font-size: 28px; font-weight: 800; }
+  .s-foot { display: flex; justify-content: space-between; gap: 16px; margin-top: 28px; color: var(--body); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .s-foot b { color: var(--accent); font-weight: 800; }
+  .s-result { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 48px; align-items: start; }
+  .screen .bar-label { font-size: 24px; }
+  .screen .bar-track, .screen .bar-fill { height: 44px; border-radius: 10px; }
+  .screen .bar-row + .bar-row { margin-top: 20px; }
+  .screen .section-title { margin-top: 0; font-size: 24px; }
+  .screen .lb-row { padding: 16px 24px; font-size: 26px; }
+  .screen .tag { font-size: 18px; }
+  /* 대기 화면: 참여 코드 + QR */
+  .s-wait { display: grid; place-items: center; min-height: 100vh; padding: 40px; }
+  .s-wait-in { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 48px 96px; }
+  .s-wait .code-label { font-size: 22px; }
+  .s-wait .code-big { font-size: clamp(96px, 13vw, 200px); }
+  .s-wait .link { font-size: 18px; }
+  .s-wait .s-count { margin-top: 28px; color: rgba(255, 255, 255, .85); font-size: 26px; }
+  .s-wait .s-count b { color: #fff; font-variant-numeric: tabular-nums; }
+  .s-wait .qr { padding: 18px; border-radius: 20px; }
+  #s-ctrl {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px;
+    border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 8px 24px rgba(10, 26, 51, .14);
+    opacity: .35; transition: opacity .2s;
+  }
+  #s-ctrl:hover, #s-ctrl:focus-within { opacity: 1; }
+  @media (max-width: 760px) {
+    .screen { padding: 24px 16px 100px; }
+    .s-opts, .s-result { grid-template-columns: minmax(0, 1fr); }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-
-  <div id="scr-config" class="card hidden">
-    <h1>초기 설정 필요</h1>
-    <p class="sub mt">파일 하단 <b>firebaseConfig</b>에 Firebase 설정값을 넣어야 합니다.</p>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="./"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="currentColor"/><rect x="8" y="15" width="4" height="9" rx="2" fill="#fff"/><rect x="14" y="8" width="4" height="16" rx="2" fill="#fff"/><rect x="20" y="12" width="4" height="12" rx="2" fill="#fff"/></svg>수업 도구</a>
+    <nav class="nav" aria-label="도구">
+      <a href="../vote/">투표</a>
+      <a href="../quiz/" aria-current="page">퀴즈</a>
+      <a href="../debate/">토론</a>
+    </nav>
+    <button class="tool-btn theme-btn" onclick="toggleTheme()" aria-label="밝은 화면·어두운 화면 바꾸기" title="밝은 화면·어두운 화면">
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
   </div>
+</header>
 
-  <!-- 홈 -->
-  <div id="scr-home" class="hidden">
-    <div class="card center">
+<div id="scr-config" class="hidden">
+  <section class="head"><div class="wrap"><span class="eyebrow">라이브 퀴즈</span><h1>초기 설정 필요</h1></div></section>
+  <main class="wrap narrow">
+    <div class="card"><p>파일 하단 <b>firebaseConfig</b>에 Firebase 설정값을 넣어야 합니다.</p></div>
+  </main>
+</div>
+
+<!-- 홈 -->
+<div id="scr-home" class="hidden">
+  <section class="head">
+    <div class="wrap">
+      <span class="eyebrow">문항 출제 · 실시간 채점 · 리더보드</span>
       <h1>라이브 퀴즈</h1>
-      <p class="sub">문항 출제 · 실시간 채점 · 리더보드</p>
+      <p class="lead">진행자가 문제를 내면 학생은 휴대폰으로 보기를 골라요. 정답을 공개하면 바로 채점하고, 빨리 맞힌 사람과 점수 순위를 보여 줘요.</p>
+      <label class="join-label" for="join-code">참여자</label>
+      <form class="join" onsubmit="joinByInput(); return false;">
+        <input type="text" id="join-code" placeholder="퀴즈 코드 4자리" maxlength="4" autocomplete="off">
+        <button class="btn-hi">참여</button>
+      </form>
     </div>
+  </section>
+  <main class="wrap narrow">
     <div class="card">
       <h2>진행자</h2>
       <div class="row">
         <input type="text" id="sess-name" class="grow" maxlength="30" placeholder="퀴즈 이름 (예: 3주차 복습)">
         <button class="btn-p" onclick="createSession()">새 퀴즈 만들기</button>
       </div>
-      <div id="my-sessions" class="mt"></div>
-      <p class="sub mt" style="margin-bottom:6px">다른 브라우저에서 만든 퀴즈을(를) 코드로 열기</p>
+      <div id="my-sessions"></div>
+      <label class="field-label" for="host-code">다른 브라우저에서 만든 퀴즈을(를) 코드로 열기</label>
       <div class="row">
-        <input type="text" id="host-code" class="grow" maxlength="4" placeholder="코드 4자리" style="text-transform:uppercase">
+        <input type="text" id="host-code" class="grow code" maxlength="4" placeholder="코드 4자리">
         <button class="btn-o" onclick="hostByCode()">진행자로 열기</button>
       </div>
     </div>
-    <div class="card">
-      <h2>참여자</h2>
-      <div class="row">
-        <input type="text" id="join-code" class="grow" placeholder="퀴즈 코드 4자리" maxlength="4" style="text-transform:uppercase">
-        <button class="btn-g" onclick="joinByInput()">참여</button>
-      </div>
-    </div>
-  </div>
+  </main>
+</div>
 
-  <!-- 진행자 -->
-  <div id="scr-host" class="hidden">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <p id="h-name" style="font-weight:700"></p>
-          <p class="sub">참여 코드</p>
-          <div class="code-big" id="h-code"></div>
-          <p class="sub" id="h-link" style="word-break:break-all"></p>
-          <p class="sub mt">참가자 <b id="h-count">0</b>명</p>
-          <button class="btn-p btn-sm mt" onclick="openScreenWin()">🖥 발표 화면 열기</button>
+<!-- 진행자 -->
+<div id="scr-host" class="hidden">
+  <section class="head host-head">
+    <div class="wrap">
+      <div>
+        <span class="eyebrow" id="h-name"></span>
+        <p class="code-label">참여 코드</p>
+        <div class="code-big" id="h-code"></div>
+        <p class="link" id="h-link"></p>
+        <div class="row head-actions">
+          <span class="pill">참가자 <b id="h-count">0</b>명</span>
+          <button class="btn-hi btn-sm" onclick="openScreenWin()">발표 화면 열기</button>
         </div>
-        <div id="qrbox"></div>
+      </div>
+      <div id="qrbox" class="qr"></div>
+    </div>
+  </section>
+  <main class="wrap">
+    <div class="cols">
+      <div class="stack">
+        <div class="card">
+          <h2>문항 만들기</h2>
+          <div class="form">
+            <input type="text" id="new-q" placeholder="문제 입력">
+            <textarea id="new-opts" rows="4" placeholder="보기 (한 줄에 하나, 2~6개)"></textarea>
+            <div class="row">
+              <label class="inline-field">정답 번호 <input type="number" id="new-ans" min="1" max="6" value="1" class="num"></label>
+              <label class="inline-field">선착순 정답자 표시
+                <select id="new-top" class="auto"><option value="1">1명</option><option value="3" selected>3명</option><option value="5">5명</option></select></label>
+            </div>
+            <div class="row">
+              <button class="btn-p" id="add-btn" onclick="addQuestion()">문항 추가</button>
+              <button class="btn-o hidden" id="cancel-btn" onclick="cancelEdit()">수정 취소</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>문항 목록</h2>
+          <p class="hint mb">「출제」→ 학생 답 제출 → 「정답 공개」→ 자동 채점 (정답 100점)</p>
+          <div id="q-list"></div>
+          <div class="row mt">
+            <button class="btn-s" onclick="showBoard()">리더보드 표시</button>
+            <button class="btn-o" onclick="stopAll()">화면 내리기</button>
+          </div>
+          <div class="reset-row"><button class="btn-danger btn-sm" onclick="resetSession()">답변·점수 초기화</button>
+            <span class="hint">문항과 참여 코드는 유지, 모든 답변·참가자·점수만 삭제</span></div>
+        </div>
+      </div>
+
+      <div class="card sticky">
+        <div class="card-head"><h2>실시간 현황</h2><span class="badge live hidden" id="live-badge">LIVE</span></div>
+        <div id="h-results"><p class="waiting">출제 중인 문항이 없습니다</p></div>
       </div>
     </div>
+  </main>
+</div>
 
+<!-- 참여자 -->
+<div id="scr-part" class="hidden">
+  <main class="wrap narrow">
     <div class="card">
-      <h2>문항 만들기</h2>
-      <input type="text" id="new-q" placeholder="문제 입력" style="margin-bottom:10px">
-      <textarea id="new-opts" rows="4" placeholder="보기 (한 줄에 하나, 2~6개)" style="margin-bottom:10px"></textarea>
-      <div class="row mb">
-        <label class="sub">정답 번호</label>
-        <input type="number" id="new-ans" min="1" max="6" value="1" style="width:80px">
-        <label class="sub" style="margin-left:10px">선착순 정답자 표시</label>
-        <select id="new-top" style="width:auto"><option value="1">1명</option><option value="3" selected>3명</option><option value="5">5명</option></select>
-      </div>
-      <button class="btn-p" id="add-btn" onclick="addQuestion()">문항 추가</button>
-      <button class="btn-o hidden" id="cancel-btn" onclick="cancelEdit()">수정 취소</button>
-    </div>
-
-    <div class="card">
-      <h2>문항 목록</h2>
-      <p class="sub mb">「출제」→ 학생 답 제출 → 「정답 공개」→ 자동 채점 (정답 100점)</p>
-      <div id="q-list"></div>
-      <div class="row mt">
-        <button class="btn-y" onclick="showBoard()">🏆 리더보드 표시</button>
-        <button class="btn-o" onclick="stopAll()">화면 내리기</button>
-        <button class="btn-danger" onclick="resetSession()">🔄 답변·점수 초기화</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>실시간 현황 <span class="badge live" id="live-badge" style="display:none">LIVE</span></h2>
-      <div id="h-results"><p class="waiting">출제 중인 문항이 없습니다</p></div>
-    </div>
-  </div>
-
-  <!-- 참여자 -->
-  <div id="scr-part" class="hidden">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <p class="sub">퀴즈 <b id="p-code"></b> · <span id="p-name"></span></p>
+      <div class="part-meta">
+        <span>퀴즈 <b id="p-code"></b> · <span id="p-name"></span></span>
         <span class="score-pill" id="p-score">0점</span>
       </div>
-      <div id="p-body" class="mt"></div>
+      <div id="p-body"></div>
     </div>
-  </div>
+  </main>
+</div>
 
-  <!-- 발표 화면 (빔프로젝터용, 정답·조작 버튼 없음) -->
-  <div id="scr-screen" class="hidden">
-    <div id="s-body"></div>
-    <div id="s-ctrl">
-      <button class="btn-g btn-sm" onclick="nextQ()">▶ 다음 문제</button>
-      <button class="btn-y btn-sm" id="s-rev" onclick="reveal()">정답 공개</button>
-      <button class="btn-o btn-sm" onclick="showBoard()">🏆 리더보드</button>
-      <button class="btn-o btn-sm" onclick="stopAll()">대기 화면</button>
-    </div>
+<!-- 발표 화면 (빔프로젝터용, 정답·조작 버튼 없음) -->
+<div id="scr-screen" class="hidden">
+  <div id="s-body"></div>
+  <div id="s-ctrl">
+    <button class="btn-p btn-sm" onclick="nextQ()">다음 문제</button>
+    <button class="btn-s btn-sm" id="s-rev" onclick="reveal()">정답 공개</button>
+    <button class="btn-o btn-sm" onclick="showBoard()">리더보드</button>
+    <button class="btn-o btn-sm" onclick="stopAll()">대기 화면</button>
   </div>
+</div>
 
-  <!-- 닉네임 -->
-  <div id="scr-name" class="hidden">
+<!-- 닉네임 -->
+<div id="scr-name" class="hidden">
+  <main class="wrap narrow">
     <div class="card">
       <h2>닉네임을 입력하세요</h2>
-      <div class="row">
+      <form class="row" onsubmit="setName(); return false;">
         <input type="text" id="nick" class="grow" maxlength="12" placeholder="닉네임 (최대 12자)">
-        <button class="btn-g" onclick="setName()">입장</button>
-      </div>
+        <button class="btn-p">입장</button>
+      </form>
     </div>
-  </div>
-
+  </main>
 </div>
+
 <div id="toast"></div>
 
 <script>
@@ -216,7 +230,7 @@ const CHARS="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const clientId = localStorage.lv_cid || (localStorage.lv_cid = Math.random().toString(36).slice(2,10));
 const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
-function show(id){ ['scr-config','scr-home','scr-host','scr-part','scr-name','scr-screen'].forEach(s=>$(s).classList.add('hidden')); $(id).classList.remove('hidden'); }
+function show(id){ ['scr-config','scr-home','scr-host','scr-part','scr-name','scr-screen'].forEach(s=>$(s).classList.add('hidden')); $(id).classList.remove('hidden'); document.body.dataset.view=id; }
 function ref(p){ return db.ref('sessions/'+code+(p?'/'+p:'')); }
 function baseUrl(){ return location.origin + location.pathname; }
 
@@ -235,11 +249,11 @@ function saveList(l){ localStorage.qz_mine=JSON.stringify(l.slice(0,20)); }
 function renderMySessions(){
   const mine = myList();
   $('my-sessions').innerHTML = mine.length
-    ? '<p class="sub" style="margin-bottom:6px">내 퀴즈 다시 열기</p>' +
-      mine.map(e=>`<span style="display:inline-flex;align-items:center;border:1.5px solid var(--line);border-radius:8px;margin:0 6px 6px 0;overflow:hidden;background:#fff">
-        <button class="btn-o btn-sm" style="border:none;border-radius:0" onclick="openHost('${esc(e.c)}')">${e.n?esc(e.n)+' · ':''}${esc(e.c)}</button>
-        <button class="btn-sm" style="background:#fff;color:var(--danger);border:none;border-left:1.5px solid var(--line);border-radius:0" onclick="delSession('${esc(e.c)}')">✕</button>
-      </span>`).join('')
+    ? '<p class="field-label">내 퀴즈 다시 열기</p><div class="sess-list">' +
+      mine.map(e=>`<span class="sess">
+        <button class="open" onclick="openHost('${esc(e.c)}')">${e.n?esc(e.n)+'<span>'+esc(e.c)+'</span>':esc(e.c)}</button>
+        <button class="del" onclick="delSession('${esc(e.c)}')" aria-label="삭제">✕</button>
+      </span>`).join('') + '</div>'
     : '';
 }
 function hostByCode(){
@@ -279,7 +293,7 @@ function openHost(c){
   const url = baseUrl()+'?s='+code;
   $('h-link').textContent = url;
   $('qrbox').innerHTML='';
-  new QRCode($('qrbox'), {text:url, width:140, height:140});
+  new QRCode($('qrbox'), {text:url, width:160, height:160});
   ref('questions').on('value', s=>{ questions=s.val()||{}; renderQList(); hostResults(); });
   ref('state').on('value', s=>{ state=s.val(); renderQList(); hostResults(); });
   ref('players').on('value', s=>{ players=s.val()||{}; $('h-count').textContent=Object.keys(players).length; if(state&&state.phase==='board') hostResults(); });
@@ -358,17 +372,14 @@ function renderQList(){
   $('q-list').innerHTML = ids.length? ids.map((id,idx)=>{
     const q=questions[id], live=(state && state.qid===id);
     const phase = live? (state.phase==='ans'?'답변 받는 중':'정답 공개됨') : '';
-    return `<div class="q-item ${live?'live':''}">
-      <div class="row" style="justify-content:space-between">
-        <div class="grow"><span class="badge ${live?'live':''}">${live?phase:('Q'+(idx+1))}</span>
-          <b style="margin-left:6px">${esc(q.text)}</b>
-          <span class="sub" style="margin-left:6px">(정답: ${esc(q.options[q.answer])})</span></div>
-        <div>
-          ${live && state.phase==='ans' ? `<button class="btn-y btn-sm" onclick="reveal()">정답 공개</button>` : ''}
-          ${!live ? `<button class="btn-g btn-sm" onclick="startQ('${id}')">출제</button>
-          <button class="btn-o btn-sm" onclick="editQ('${id}')">수정</button>` : ''}
-          <button class="btn-danger btn-sm" onclick="delQ('${id}')">삭제</button>
-        </div>
+    return `<div class="act-item ${live?'live':''}">
+      <div class="act-title"><span class="badge ${live?'live':''}">${live?phase:('Q'+(idx+1))}</span>
+        <span>${esc(q.text)} <span class="sub">(정답: ${esc(q.options[q.answer])})</span></span></div>
+      <div class="act-actions">
+        ${live && state.phase==='ans' ? `<button class="btn-p btn-sm" onclick="reveal()">정답 공개</button>` : ''}
+        ${!live ? `<button class="btn-s btn-sm" onclick="startQ('${id}')">출제</button>
+        <button class="btn-o btn-sm" onclick="editQ('${id}')">수정</button>` : ''}
+        <button class="btn-danger btn-sm" onclick="delQ('${id}')">삭제</button>
       </div></div>`;
   }).join('') : '<p class="sub">아직 문항이 없습니다.</p>';
 }
@@ -390,10 +401,10 @@ function delQ(id){
 /* ---------- 실시간 현황 (진행자) ---------- */
 function hostResults(){
   const box=$('h-results');
-  $('live-badge').style.display = state? 'inline-block':'none';
+  $('live-badge').classList.toggle('hidden', !state);
   if(ansListener){ ansListener.off(); ansListener=null; }
   if(!state){ box.innerHTML='<p class="waiting">출제 중인 문항이 없습니다</p>'; return; }
-  if(state.phase==='board'){ box.innerHTML='<div class="result-title">🏆 리더보드</div>'+renderBoard(); return; }
+  if(state.phase==='board'){ box.innerHTML='<div class="result-title">리더보드</div>'+renderBoard(); return; }
   const q=questions[state.qid]; if(!q) return;
   ansListener = ref('answers/'+state.qid);
   ansListener.on('value', s=>{
@@ -409,8 +420,8 @@ function resultBars(q, answers, rev){
   const total=Object.keys(answers).length;
   return q.options.map((o,i)=>{
     const pct= total? Math.round(counts[i]/total*100):0, ok = rev && i===q.answer;
-    return `<div class="bar-row"><div class="bar-label"><span>${esc(o)}${ok?' ✅':''}</span><b>${counts[i]}명 (${pct}%)</b></div>
-      <div class="bar-track"><div class="bar-fill ${ok?'ok':''}" style="width:${pct}%"></div></div></div>`;
+    return `<div class="bar-row"><div class="bar-label"><span>${esc(o)}${ok?'<span class="tag ok">정답</span>':''}</span><b>${counts[i]}명 (${pct}%)</b></div>
+      <div class="bar-track"><div class="bar-fill ${rev?(ok?'ok':'dim'):''}" style="width:${pct}%"></div></div></div>`;
   }).join('');
 }
 function ansOf(v){ return (v!==null && typeof v==='object')? v.a : v; }
@@ -420,7 +431,7 @@ function renderFastest(q, answers){
     .filter(id=>ansOf(answers[id])===q.answer && answers[id].t)
     .sort((x,y)=>answers[x].t-answers[y].t)
     .slice(0,n);
-  let html=`<div class="result-title mt">⚡ 선착순 정답자 TOP ${n}</div>`;
+  let html=`<div class="section-title">선착순 정답자 TOP ${n}</div>`;
   if(!list.length) return html+'<p class="sub">정답자가 없습니다</p>';
   return html+list.map((id,i)=>{
     const sec = t0? ((answers[id].t-t0)/1000).toFixed(1)+'초' : '';
@@ -468,29 +479,29 @@ function screenRender(){
   if(sTimer){ clearInterval(sTimer); sTimer=null; }
   if(!state){
     const url=baseUrl()+'?s='+code;
-    box.innerHTML=`<div class="card center"><p class="sub">참여 코드</p>
-      <div class="code-big" style="font-size:6rem">${esc(code)}</div>
-      <div id="s-qr" style="display:inline-block;background:#fff;padding:14px;border-radius:12px;margin:16px 0"></div>
-      <p class="sub" style="word-break:break-all">${esc(url)}</p>
-      <p class="s-count mt">참가자 <b>${np}</b>명</p></div>`;
-    new QRCode($('s-qr'), {text:url, width:260, height:260});
+    box.innerHTML=`<div class="head s-wait"><div class="s-wait-in">
+      <div><p class="code-label">참여 코드</p>
+        <div class="code-big">${esc(code)}</div>
+        <p class="link">${esc(url)}</p>
+        <p class="s-count">참가자 <b>${np}</b>명</p></div>
+      <div id="s-qr" class="qr"></div></div></div>`;
+    new QRCode($('s-qr'), {text:url, width:280, height:280});
     return;
   }
-  if(state.phase==='board'){ box.innerHTML='<div class="card"><div class="result-title">🏆 리더보드</div>'+renderBoard()+'</div>'; return; }
+  if(state.phase==='board'){ box.innerHTML='<div class="screen"><h1 class="s-q">리더보드</h1>'+renderBoard()+'</div>'; return; }
   const q=questions[state.qid]; if(!q){ box.innerHTML=''; return; }
   const ids=Object.keys(questions);
-  const head=`<p class="sub">Q${ids.indexOf(state.qid)+1} / ${ids.length} · 참여 코드 <b>${esc(code)}</b></p>
-    <div class="result-title">${esc(q.text)}</div>`;
+  const head=`<div class="s-meta"><span>Q${ids.indexOf(state.qid)+1} / ${ids.length}</span><span>참여 코드 <b>${esc(code)}</b></span></div>
+    <h1 class="s-q">${esc(q.text)}</h1>`;
   if(state.phase==='ans'){
-    box.innerHTML=`<div class="card">${head}
-      ${q.options.map((o,i)=>`<div class="s-opt"><span class="s-num">${i+1}</span>${esc(o)}</div>`).join('')}
-      <div class="row mt s-count" style="justify-content:space-between">
-        <span>제출 <b>${Object.keys(sAnswers).length}</b> / ${np}명</span><span id="s-time"></span></div></div>`;
-    const tick=()=>{ const el=$('s-time'); if(el && state && state.t0) el.textContent='⏱ '+Math.max(0,Math.floor((Date.now()+srvOffset-state.t0)/1000))+'초'; };
+    box.innerHTML=`<div class="screen">${head}
+      <div class="s-opts">${q.options.map((o,i)=>`<div class="s-opt"><span class="s-num">${i+1}</span>${esc(o)}</div>`).join('')}</div>
+      <div class="s-foot"><span>제출 <b>${Object.keys(sAnswers).length}</b> / ${np}명</span><span id="s-time"></span></div></div>`;
+    const tick=()=>{ const el=$('s-time'); if(el && state && state.t0) el.textContent='경과 '+Math.max(0,Math.floor((Date.now()+srvOffset-state.t0)/1000))+'초'; };
     tick(); sTimer=setInterval(tick,500);
     return;
   }
-  box.innerHTML=`<div class="card">${head}${resultBars(q, sAnswers, true)}${renderFastest(q, sAnswers)}</div>`;
+  box.innerHTML=`<div class="screen">${head}<div class="s-result"><div>${resultBars(q, sAnswers, true)}</div><div>${renderFastest(q, sAnswers)}</div></div></div>`;
 }
 function nextQ(){
   const ids=Object.keys(questions), i = lastQid? ids.indexOf(lastQid)+1 : 0;
@@ -503,7 +514,7 @@ function partBody(){
   const box=$('p-body');
   if(!state){ box.innerHTML='<p class="waiting">진행자가 문항을 출제하면 여기에 표시됩니다…</p>'; return; }
   if(state.phase==='board'){
-    ref('players').get().then(s=>{ players=s.val()||{}; box.innerHTML='<div class="result-title">🏆 리더보드</div>'+renderBoard(); });
+    ref('players').get().then(s=>{ players=s.val()||{}; box.innerHTML='<div class="result-title">리더보드</div>'+renderBoard(); });
     return;
   }
   ref('questions/'+state.qid).get().then(s=>{
@@ -531,7 +542,7 @@ function partBody(){
           let cls='opt-btn';
           if(i===q.answer) cls+=' correct';
           else if(i===mine) cls+=' wrong';
-          return `<button class="${cls}" disabled>${esc(o)}${i===q.answer?' ✅':''}</button>`;
+          return `<button class="${cls}" disabled>${esc(o)}</button>`;
         }).join('') +
         (mine===null
           ? `<p class="big-feedback no-txt">미제출</p>`

@@ -25,7 +25,9 @@ Firebase Realtime Database 무료(Spark) 플랜 + GitHub Pages로 동작하며 �
 
 ## 구조
 
-- 각 도구는 단일 `index.html` (별도 빌드·서버 없음)
+- 각 도구는 `index.html` 하나 + 공용 `assets/` (별도 빌드·서버 없음)
+  - `assets/style.css`: 공통 디자인(색·글꼴·상단 바·카드·버튼). 도구마다 다른 부분은 각 `index.html`의 `<style>`
+  - `assets/theme.js`: 밝은/어두운 화면 (기기 설정을 따르고 상단 버튼으로 바꿀 수 있음)
 - 데이터: Firebase Realtime Database (`sessions/{코드}` 하위에 저장)
   - 토론 도우미는 Firebase를 쓰지 않음 — 진행자 화면(빔프로젝터)에서만 동작하고 명단·순서는 브라우저에 저장
 - 새로 설치하려면 Firebase 프로젝트 생성 후 `index.html`의 `firebaseConfig`에 본인 설정값 입력 — 자세한 절차는 `설치가이드.md` 참고

@@ -4,71 +4,102 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>토론 도우미</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563C9'/%3E%3Crect x='8' y='15' width='4' height='9' rx='2' fill='%23fff'/%3E%3Crect x='14' y='8' width='4' height='16' rx='2' fill='%23fff'/%3E%3Crect x='20' y='12' width='4' height='12' rx='2' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/theme.js"></script>
 <style>
-  :root{
-    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --sub:#6b7280;
-    --accent:#3b5bdb; --accent2:#12b886; --danger:#e03131; --line:#e5e8f0; --gold:#f59f00;
+  /* 머리 띠 아래쪽에 붙은 탭 */
+  .head.with-tabs { padding-bottom: 0; }
+  .tabs { display: flex; gap: 4px; margin-top: 28px; }
+  .tabs button {
+    height: 50px; padding: 0 22px; border: 0; border-radius: 12px 12px 0 0;
+    background: transparent; color: rgba(255, 255, 255, .72); font-size: 16px; font-weight: 600;
   }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  body{font-family:'Apple SD Gothic Neo','Malgun Gothic',Pretendard,sans-serif; background:var(--bg); color:var(--ink); min-height:100vh;}
-  .wrap{max-width:1000px; margin:0 auto; padding:20px 16px 60px;}
-  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(20,30,60,.05);}
-  h1{font-size:1.5rem; margin-bottom:6px;}
-  h2{font-size:1.15rem; margin-bottom:12px;}
-  .sub{color:var(--sub); font-size:.9rem;}
-  button{font:inherit; cursor:pointer; border:none; border-radius:10px; padding:12px 18px; font-weight:600;}
-  .btn-p{background:var(--accent); color:#fff;}
-  .btn-g{background:var(--accent2); color:#fff;}
-  .btn-o{background:#fff; color:var(--ink); border:1.5px solid var(--line);}
-  button:disabled{opacity:.45; cursor:not-allowed;}
-  input[type=number],textarea,select{font:inherit; width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; background:#fff;}
-  input:focus,textarea:focus{outline:2px solid var(--accent); border-color:transparent;}
-  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
-  .hidden{display:none !important;}
-  .center{text-align:center;}
-  .mt{margin-top:14px;}
-  #toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 20px; border-radius:24px; font-size:.9rem; opacity:0; transition:.3s; pointer-events:none; z-index:50;}
-  #toast.show{opacity:1;}
+  .tabs button:hover { color: #fff; }
+  .tabs button.on { background: var(--surface-2); color: var(--text); }
   /* 조 편성 */
-  .groups{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px;}
-  .group{border:1.5px solid var(--line); border-radius:12px; padding:12px 14px;}
-  .group h3{font-size:1.2rem; color:var(--accent); margin-bottom:8px;}
-  .group ol{padding-left:1.5em; font-size:1.2rem; line-height:1.7;}
-  /* 타이머 */
-  .t-stage{font-size:2rem; font-weight:800; text-align:center; margin-top:6px;}
-  .t-time{font-size:clamp(4.5rem,20vw,11rem); font-weight:800; text-align:center; line-height:1.1; font-variant-numeric:tabular-nums;}
-  .t-time.warn{color:var(--gold);}
-  .t-time.over{color:var(--danger);}
-  .t-list{padding-left:1.5em; font-size:1.05rem; line-height:1.9;}
-  .t-list li{cursor:pointer;}
-  .t-list li.cur{color:var(--accent); font-weight:800;}
-  .t-list li.done{color:var(--sub); text-decoration:line-through;}
-  summary{cursor:pointer;}
+  .groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 14px; }
+  .group { padding: 16px 18px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+  .group h3 { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+  .group ol { padding: 0; list-style: none; counter-reset: n; }
+  .group li { counter-increment: n; display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 19px; font-weight: 600; }
+  .group li:first-child { border-top: 0; }
+  .group li::before {
+    content: counter(n); flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px;
+    border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 800;
+  }
+  /* 발언 타이머 */
+  .timer-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: 20px; align-items: start; }
+  .timer-cols > .card + .card { margin-top: 0; }
+  .timer { padding: 32px 24px; text-align: center; }
+  .t-stage { margin-top: 6px; font-size: clamp(26px, 3vw, 36px); font-weight: 800; letter-spacing: -.02em; }
+  .t-time { margin: 6px 0 22px; font-size: clamp(88px, 17vw, 200px); font-weight: 800; line-height: 1.05; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+  .t-time.warn { color: var(--warn); }
+  .t-time.over { color: var(--bad); }
+  .t-ctrl { justify-content: center; }
+  #t-go { min-width: 132px; }
+  .t-list { padding: 0; list-style: none; counter-reset: n; }
+  .t-list li { counter-increment: n; display: flex; align-items: center; gap: 12px; padding: 9px 10px; border-radius: 10px; cursor: pointer; }
+  .t-list li::before {
+    content: counter(n); flex: none; display: inline-grid; place-items: center; width: 26px; height: 26px;
+    border-radius: 50%; background: var(--surface-2); color: var(--muted); font-size: 13px; font-weight: 700;
+  }
+  .t-list li .sub { margin-left: auto; font-variant-numeric: tabular-nums; }
+  .t-list li:hover { background: var(--surface-2); }
+  .t-list li.cur { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .t-list li.cur::before { background: var(--accent); color: var(--on-accent); }
+  .t-list li.done { color: var(--faint); text-decoration: line-through; }
+  @media (max-width: 1000px) { .timer-cols { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 760px) {
+    .tabs { margin-top: 20px; }
+    .tabs button { padding: 0 16px; }
+    .timer { padding: 24px 14px; }
+    .t-ctrl { gap: 8px; }
+    .t-ctrl button { padding: 0 14px; }
+    #t-go { min-width: 96px; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="./"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="currentColor"/><rect x="8" y="15" width="4" height="9" rx="2" fill="#fff"/><rect x="14" y="8" width="4" height="16" rx="2" fill="#fff"/><rect x="20" y="12" width="4" height="12" rx="2" fill="#fff"/></svg>수업 도구</a>
+    <nav class="nav" aria-label="도구">
+      <a href="../vote/">투표</a>
+      <a href="../quiz/">퀴즈</a>
+      <a href="../debate/" aria-current="page">토론</a>
+    </nav>
+    <button class="tool-btn theme-btn" onclick="toggleTheme()" aria-label="밝은 화면·어두운 화면 바꾸기" title="밝은 화면·어두운 화면">
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+  </div>
+</header>
 
-  <div class="card center">
+<section class="head with-tabs">
+  <div class="wrap">
+    <span class="eyebrow">랜덤 조 편성 · 발언 순서 타이머</span>
     <h1>토론 도우미</h1>
-    <p class="sub">랜덤 조 편성 · 발언 순서 타이머</p>
-    <div class="row mt" style="justify-content:center">
-      <button class="btn-p" id="tab-group" onclick="tab('group')">👥 조 편성</button>
-      <button class="btn-o" id="tab-timer" onclick="tab('timer')">⏱ 발언 타이머</button>
+    <div class="tabs">
+      <button class="on" id="tab-group" onclick="tab('group')">조 편성</button>
+      <button id="tab-timer" onclick="tab('timer')">발언 타이머</button>
     </div>
   </div>
+</section>
 
+<main class="wrap">
   <!-- 조 편성 -->
   <div id="pane-group">
     <div class="card">
       <h2>참여자 명단</h2>
       <textarea id="names" rows="6" placeholder="이름을 한 줄에 하나씩 (쉼표로 구분해도 됩니다)"></textarea>
       <div class="row mt">
-        <select id="g-mode" style="width:auto"><option value="count">조 개수</option><option value="size">조당 인원</option></select>
-        <input type="number" id="g-num" min="1" value="4" style="width:90px">
-        <button class="btn-p" onclick="makeGroups()">🎲 랜덤 편성</button>
+        <select id="g-mode" class="auto"><option value="count">조 개수</option><option value="size">조당 인원</option></select>
+        <input type="number" id="g-num" class="num" min="1" value="4">
+        <button class="btn-p" onclick="makeGroups()">랜덤 편성</button>
       </div>
-      <p class="sub mt">명단은 이 브라우저에 저장됩니다. 조 안의 번호는 발언 순서로 쓸 수 있습니다.</p>
+      <p class="hint mt">명단은 이 브라우저에 저장됩니다. 조 안의 번호는 발언 순서로 쓸 수 있습니다.</p>
     </div>
     <div class="card hidden" id="g-card">
       <h2>편성 결과</h2>
@@ -78,28 +109,30 @@
 
   <!-- 발언 타이머 -->
   <div id="pane-timer" class="hidden">
-    <div class="card">
-      <p class="sub center" id="t-step"></p>
-      <div class="t-stage" id="t-stage"></div>
-      <div class="t-time" id="t-time"></div>
-      <div class="row mt" style="justify-content:center">
-        <button class="btn-o" onclick="go(cur-1)">◀ 이전</button>
-        <button class="btn-g" id="t-go" onclick="startPause()"></button>
-        <button class="btn-o" onclick="go(cur)">🔄 다시</button>
-        <button class="btn-o" onclick="go(cur+1)">다음 ▶</button>
+    <div class="timer-cols">
+      <div class="card timer">
+        <p class="sub" id="t-step"></p>
+        <div class="t-stage" id="t-stage"></div>
+        <div class="t-time" id="t-time"></div>
+        <div class="row t-ctrl">
+          <button class="btn-o" onclick="go(cur-1)">‹ 이전</button>
+          <button class="btn-p" id="t-go" onclick="startPause()"></button>
+          <button class="btn-o" onclick="go(cur)">다시</button>
+          <button class="btn-o" onclick="go(cur+1)">다음 ›</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>발언 순서</h2>
+        <ol id="t-list" class="t-list"></ol>
+        <details class="mt"><summary class="sub">순서·시간 편집</summary>
+          <textarea id="stages" rows="8" class="mt" placeholder="한 줄에 하나: 단계 이름 + 시간 (예: 찬성 입론 3:00)"></textarea>
+          <button class="btn-p mt" onclick="applyStages()">적용</button>
+        </details>
       </div>
     </div>
-    <div class="card">
-      <h2>발언 순서</h2>
-      <ol id="t-list" class="t-list"></ol>
-      <details class="mt"><summary class="sub">순서·시간 편집</summary>
-        <textarea id="stages" rows="8" class="mt" placeholder="한 줄에 하나: 단계 이름 + 시간 (예: 찬성 입론 3:00)"></textarea>
-        <button class="btn-p mt" onclick="applyStages()">적용</button>
-      </details>
-    </div>
   </div>
+</main>
 
-</div>
 <div id="toast"></div>
 
 <script>
@@ -107,7 +140,7 @@ const $=id=>document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
 function tab(t){
-  ['group','timer'].forEach(x=>{ $('pane-'+x).classList.toggle('hidden', x!==t); $('tab-'+x).className = x===t? 'btn-p':'btn-o'; });
+  ['group','timer'].forEach(x=>{ $('pane-'+x).classList.toggle('hidden', x!==t); $('tab-'+x).classList.toggle('on', x===t); });
 }
 
 /* ---------- 조 편성 ---------- */
@@ -179,7 +212,7 @@ function render(){
   const next=stages[cur+1];
   $('t-step').textContent=`${cur+1} / ${stages.length} 단계`+(next? ' · 다음: '+next.name : '');
   $('t-stage').textContent=stages[cur].name;
-  $('t-go').textContent= endAt? '⏸ 일시정지' : '▶ 시작';
+  $('t-go').textContent= endAt? '일시정지' : '시작';
   $('t-go').disabled= !endAt && !left;
   $('t-list').innerHTML=stages.map((s,i)=>
     `<li class="${i===cur?'cur':i<cur?'done':''}" onclick="go(${i})">${esc(s.name)} <span class="sub">${fmt(s.sec)}</span></li>`).join('');

@@ -4,158 +4,137 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>라이브 투표</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563C9'/%3E%3Crect x='8' y='15' width='4' height='9' rx='2' fill='%23fff'/%3E%3Crect x='14' y='8' width='4' height='16' rx='2' fill='%23fff'/%3E%3Crect x='20' y='12' width='4' height='12' rx='2' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/theme.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<style>
-  :root{
-    --bg:#f4f6fb; --card:#ffffff; --ink:#1c2333; --sub:#6b7280;
-    --accent:#3b5bdb; --accent2:#12b886; --danger:#e03131; --line:#e5e8f0;
-  }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  body{font-family:'Apple SD Gothic Neo','Malgun Gothic',Pretendard,sans-serif; background:var(--bg); color:var(--ink); min-height:100vh;}
-  .wrap{max-width:860px; margin:0 auto; padding:20px 16px 60px;}
-  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(20,30,60,.05);}
-  h1{font-size:1.5rem; margin-bottom:6px;}
-  h2{font-size:1.15rem; margin-bottom:12px;}
-  .sub{color:var(--sub); font-size:.9rem;}
-  button{font:inherit; cursor:pointer; border:none; border-radius:10px; padding:12px 18px; font-weight:600;}
-  .btn-p{background:var(--accent); color:#fff;}
-  .btn-g{background:var(--accent2); color:#fff;}
-  .btn-o{background:#fff; color:var(--ink); border:1.5px solid var(--line);}
-  .btn-sm{padding:7px 12px; font-size:.85rem; border-radius:8px;}
-  .btn-danger{background:#fff; color:var(--danger); border:1.5px solid #ffc9c9;}
-  button:disabled{opacity:.45; cursor:not-allowed;}
-  input[type=text],textarea,select{font:inherit; width:100%; padding:11px 12px; border:1.5px solid var(--line); border-radius:10px; background:#fff;}
-  input:focus,textarea:focus{outline:2px solid var(--accent); border-color:transparent;}
-  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
-  .grow{flex:1; min-width:140px;}
-  .hidden{display:none !important;}
-  .code-big{font-size:2.6rem; font-weight:800; letter-spacing:.15em; color:var(--accent);}
-  #qrbox{background:#fff; padding:10px; border-radius:10px; display:inline-block;}
-  .opt-btn{display:block; width:100%; text-align:left; margin-bottom:10px; padding:16px; font-size:1.05rem; background:#fff; border:2px solid var(--line); border-radius:12px; transition:.15s;}
-  .opt-btn:hover{border-color:var(--accent);}
-  .opt-btn.sel{border-color:var(--accent); background:#edf2ff;}
-  .bar-row{margin-bottom:12px;}
-  .bar-label{display:flex; justify-content:space-between; font-size:.95rem; margin-bottom:4px;}
-  .bar-track{background:#eef0f6; border-radius:8px; height:26px; overflow:hidden;}
-  .bar-fill{height:100%; border-radius:8px; background:var(--accent); transition:width .4s; min-width:2px;}
-  .bar-fill.c1{background:#12b886;} .bar-fill.c2{background:#fd7e14;} .bar-fill.c3{background:#be4bdb;}
-  .bar-fill.c4{background:#e64980;} .bar-fill.c5{background:#15aabf;}
-  .cloud{display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:center; padding:18px 6px; min-height:120px;}
-  .cloud span{line-height:1.1; font-weight:700;}
-  .q-item{border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px; display:flex; gap:12px; align-items:flex-start;}
-  .q-text{flex:1; word-break:break-word;}
-  .like-btn{background:#fff; border:1.5px solid var(--line); border-radius:20px; padding:5px 12px; font-size:.85rem; white-space:nowrap;}
-  .like-btn.liked{border-color:var(--danger); color:var(--danger);}
-  .act-item{border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px;}
-  .act-item.live{border-color:var(--accent2); box-shadow:0 0 0 2px #c3fae8;}
-  .badge{font-size:.72rem; padding:3px 8px; border-radius:20px; background:#eef0f6; color:var(--sub); font-weight:700;}
-  .badge.live{background:#12b886; color:#fff;}
-  .center{text-align:center;}
-  .mt{margin-top:14px;} .mb{margin-bottom:14px;}
-  .waiting{font-size:1.2rem; color:var(--sub); text-align:center; padding:50px 0;}
-  #toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 20px; border-radius:24px; font-size:.9rem; opacity:0; transition:.3s; pointer-events:none; z-index:50;}
-  #toast.show{opacity:1;}
-  .result-title{font-size:1.35rem; font-weight:800; margin-bottom:16px;}
-  @media(max-width:600px){ .code-big{font-size:2rem;} }
-</style>
 </head>
 <body>
-<div class="wrap">
-
-  <!-- 설정 안내 -->
-  <div id="scr-config" class="card hidden">
-    <h1>초기 설정 필요</h1>
-    <p class="sub mt">이 파일 하단 <b>firebaseConfig</b> 부분에 Firebase 설정값을 붙여넣어야 합니다.
-    함께 있는 <b>설치가이드.md</b>를 따라 5분이면 끝납니다.</p>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="./"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="currentColor"/><rect x="8" y="15" width="4" height="9" rx="2" fill="#fff"/><rect x="14" y="8" width="4" height="16" rx="2" fill="#fff"/><rect x="20" y="12" width="4" height="12" rx="2" fill="#fff"/></svg>수업 도구</a>
+    <nav class="nav" aria-label="도구">
+      <a href="../vote/" aria-current="page">투표</a>
+      <a href="../quiz/">퀴즈</a>
+      <a href="../debate/">토론</a>
+    </nav>
+    <button class="tool-btn theme-btn" onclick="toggleTheme()" aria-label="밝은 화면·어두운 화면 바꾸기" title="밝은 화면·어두운 화면">
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
   </div>
+</header>
 
-  <!-- 홈 -->
-  <div id="scr-home" class="hidden">
-    <div class="card center">
-      <h1>라이브 투표</h1>
-      <p class="sub">찬반 투표 · 객관식 · 워드클라우드 · Q&amp;A</p>
+<!-- 설정 안내 -->
+<div id="scr-config" class="hidden">
+  <section class="head"><div class="wrap"><span class="eyebrow">라이브 투표</span><h1>초기 설정 필요</h1></div></section>
+  <main class="wrap narrow">
+    <div class="card">
+      <p>이 파일 하단 <b>firebaseConfig</b> 부분에 Firebase 설정값을 붙여넣어야 합니다.
+      함께 있는 <b>설치가이드.md</b>를 따라 5분이면 끝납니다.</p>
     </div>
+  </main>
+</div>
+
+<!-- 홈 -->
+<div id="scr-home" class="hidden">
+  <section class="head">
+    <div class="wrap">
+      <span class="eyebrow">찬반 투표 · 객관식 · 워드클라우드 · Q&amp;A</span>
+      <h1>라이브 투표</h1>
+      <p class="lead">진행자가 세션을 만들면 학생은 코드 4자리나 QR로 들어와 바로 답해요. 앱 설치나 로그인 없이 익명으로 참여해요.</p>
+      <label class="join-label" for="join-code">참여자</label>
+      <form class="join" onsubmit="joinByInput(); return false;">
+        <input type="text" id="join-code" placeholder="세션 코드 4자리" maxlength="4" autocomplete="off">
+        <button class="btn-hi">참여</button>
+      </form>
+    </div>
+  </section>
+  <main class="wrap narrow">
     <div class="card">
       <h2>진행자</h2>
       <div class="row">
         <input type="text" id="sess-name" class="grow" maxlength="30" placeholder="세션 이름 (예: 월2 토론수업)">
         <button class="btn-p" onclick="createSession()">새 세션 만들기</button>
       </div>
-      <div id="my-sessions" class="mt"></div>
-      <p class="sub mt" style="margin-bottom:6px">다른 브라우저에서 만든 세션을(를) 코드로 열기</p>
+      <div id="my-sessions"></div>
+      <label class="field-label" for="host-code">다른 브라우저에서 만든 세션을(를) 코드로 열기</label>
       <div class="row">
-        <input type="text" id="host-code" class="grow" maxlength="4" placeholder="코드 4자리" style="text-transform:uppercase">
+        <input type="text" id="host-code" class="grow code" maxlength="4" placeholder="코드 4자리">
         <button class="btn-o" onclick="hostByCode()">진행자로 열기</button>
       </div>
     </div>
-    <div class="card">
-      <h2>참여자</h2>
-      <div class="row">
-        <input type="text" id="join-code" class="grow" placeholder="세션 코드 4자리" maxlength="4" style="text-transform:uppercase">
-        <button class="btn-g" onclick="joinByInput()">참여</button>
-      </div>
-    </div>
-  </div>
+  </main>
+</div>
 
-  <!-- 진행자 화면 -->
-  <div id="scr-host" class="hidden">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <p id="h-name" style="font-weight:700"></p>
-          <p class="sub">참여 코드</p>
-          <div class="code-big" id="h-code"></div>
-          <p class="sub" id="h-link" style="word-break:break-all"></p>
+<!-- 진행자 화면 -->
+<div id="scr-host" class="hidden">
+  <section class="head host-head">
+    <div class="wrap">
+      <div>
+        <span class="eyebrow" id="h-name"></span>
+        <p class="code-label">참여 코드</p>
+        <div class="code-big" id="h-code"></div>
+        <p class="link" id="h-link"></p>
+      </div>
+      <div id="qrbox" class="qr"></div>
+    </div>
+  </section>
+  <main class="wrap">
+    <div class="cols">
+      <div class="stack">
+        <div class="card">
+          <h2>새 활동 만들기</h2>
+          <div class="form">
+            <select id="new-type" onchange="onTypeChange()">
+              <option value="poll2">찬반 투표</option>
+              <option value="poll">객관식 투표</option>
+              <option value="cloud">워드클라우드</option>
+              <option value="qna">Q&amp;A</option>
+            </select>
+            <input type="text" id="new-title" placeholder="질문 / 제목 입력">
+            <textarea id="new-opts" rows="3" placeholder="선택지 (한 줄에 하나)">찬성&#10;반대</textarea>
+            <div id="limit-row" class="row hidden">
+              <label class="inline-field" for="new-limit">기기당 제출 개수</label>
+              <select id="new-limit" class="auto"><option value="1">1개</option><option value="2">2개</option><option value="3">3개</option><option value="5">5개</option></select>
+            </div>
+            <div class="row">
+              <button class="btn-p" id="add-btn" onclick="addActivity()">추가</button>
+              <button class="btn-o hidden" id="cancel-btn" onclick="cancelEdit()">수정 취소</button>
+            </div>
+          </div>
         </div>
-        <div id="qrbox"></div>
+
+        <div class="card">
+          <h2>활동 목록</h2>
+          <p class="hint mb">「시작」을 누르면 참여자 화면에 해당 활동이 표시됩니다.</p>
+          <div id="act-list"></div>
+          <div class="reset-row"><button class="btn-danger btn-sm" onclick="resetSession()">응답 초기화</button>
+            <span class="hint">활동 목록은 유지, 모든 응답만 삭제 (다른 수업에서 재사용)</span></div>
+        </div>
+      </div>
+
+      <div class="card sticky">
+        <div class="card-head"><h2>실시간 결과</h2><span class="badge live hidden" id="live-badge">LIVE</span></div>
+        <div id="h-results"><p class="waiting">진행 중인 활동이 없습니다</p></div>
       </div>
     </div>
+  </main>
+</div>
 
+<!-- 참여자 화면 -->
+<div id="scr-part" class="hidden">
+  <main class="wrap narrow">
     <div class="card">
-      <h2>새 활동 만들기</h2>
-      <div class="row mb">
-        <select id="new-type" class="grow" onchange="onTypeChange()">
-          <option value="poll2">찬반 투표</option>
-          <option value="poll">객관식 투표</option>
-          <option value="cloud">워드클라우드</option>
-          <option value="qna">Q&amp;A</option>
-        </select>
-      </div>
-      <input type="text" id="new-title" placeholder="질문 / 제목 입력" style="margin-bottom:10px">
-      <textarea id="new-opts" rows="3" placeholder="선택지 (한 줄에 하나)" style="margin-bottom:10px">찬성&#10;반대</textarea>
-      <div id="limit-row" class="hidden" style="margin-bottom:10px">
-        <label class="sub">기기당 제출 개수&nbsp;</label>
-        <select id="new-limit" style="width:auto"><option value="1">1개</option><option value="2">2개</option><option value="3">3개</option><option value="5">5개</option></select>
-      </div>
-      <button class="btn-p" id="add-btn" onclick="addActivity()">추가</button>
-      <button class="btn-o hidden" id="cancel-btn" onclick="cancelEdit()">수정 취소</button>
-    </div>
-
-    <div class="card">
-      <h2>활동 목록</h2>
-      <p class="sub mb">「시작」을 누르면 참여자 화면에 해당 활동이 표시됩니다.</p>
-      <div id="act-list"></div>
-      <div class="row mt"><button class="btn-danger btn-sm" onclick="resetSession()">🔄 응답 초기화</button>
-        <span class="sub">활동 목록은 유지, 모든 응답만 삭제 (다른 수업에서 재사용)</span></div>
-    </div>
-
-    <div class="card">
-      <h2>실시간 결과 <span class="badge live" id="live-badge" style="display:none">LIVE</span></h2>
-      <div id="h-results"><p class="waiting">진행 중인 활동이 없습니다</p></div>
-    </div>
-  </div>
-
-  <!-- 참여자 화면 -->
-  <div id="scr-part" class="hidden">
-    <div class="card">
-      <p class="sub">세션 <b id="p-code"></b></p>
+      <p class="part-meta"><span>세션 <b id="p-code"></b></span></p>
       <div id="p-body"><p class="waiting">진행자가 활동을 시작하면 여기에 표시됩니다…</p></div>
     </div>
-  </div>
-
+  </main>
 </div>
+
 <div id="toast"></div>
 
 <script>
@@ -178,7 +157,7 @@ const CHARS="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const clientId = localStorage.lv_cid || (localStorage.lv_cid = Math.random().toString(36).slice(2,10));
 const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
-function show(id){ ['scr-config','scr-home','scr-host','scr-part'].forEach(s=>$(s).classList.add('hidden')); $(id).classList.remove('hidden'); }
+function show(id){ ['scr-config','scr-home','scr-host','scr-part'].forEach(s=>$(s).classList.add('hidden')); $(id).classList.remove('hidden'); document.body.dataset.view=id; }
 function ref(p){ return db.ref('sessions/'+code+(p?'/'+p:'')); }
 function baseUrl(){ return location.origin + location.pathname; }
 
@@ -198,11 +177,11 @@ function saveList(l){ localStorage.lv_mine=JSON.stringify(l.slice(0,20)); }
 function renderMySessions(){
   const mine = myList();
   $('my-sessions').innerHTML = mine.length
-    ? '<p class="sub" style="margin-bottom:6px">내 세션 다시 열기</p>' +
-      mine.map(e=>`<span style="display:inline-flex;align-items:center;border:1.5px solid var(--line);border-radius:8px;margin:0 6px 6px 0;overflow:hidden;background:#fff">
-        <button class="btn-o btn-sm" style="border:none;border-radius:0" onclick="openHost('${esc(e.c)}')">${e.n?esc(e.n)+' · ':''}${esc(e.c)}</button>
-        <button class="btn-sm" style="background:#fff;color:var(--danger);border:none;border-left:1.5px solid var(--line);border-radius:0" onclick="delSession('${esc(e.c)}')">✕</button>
-      </span>`).join('')
+    ? '<p class="field-label">내 세션 다시 열기</p><div class="sess-list">' +
+      mine.map(e=>`<span class="sess">
+        <button class="open" onclick="openHost('${esc(e.c)}')">${e.n?esc(e.n)+'<span>'+esc(e.c)+'</span>':esc(e.c)}</button>
+        <button class="del" onclick="delSession('${esc(e.c)}')" aria-label="삭제">✕</button>
+      </span>`).join('') + '</div>'
     : '';
 }
 function hostByCode(){
@@ -242,7 +221,7 @@ function openHost(c){
   const url = baseUrl()+'?s='+code;
   $('h-link').textContent = url;
   $('qrbox').innerHTML='';
-  new QRCode($('qrbox'), {text:url, width:140, height:140});
+  new QRCode($('qrbox'), {text:url, width:160, height:160});
   listenActivities(); listenCurrent();
   show('scr-host');
 }
@@ -329,15 +308,13 @@ function renderActList(){
   $('act-list').innerHTML = ids.length? ids.map(id=>{
     const a=acts[id], live=(id===currentId);
     return `<div class="act-item ${live?'live':''}">
-      <div class="row" style="justify-content:space-between">
-        <div class="grow"><span class="badge ${live?'live':''}">${live?'LIVE':TYPE_LABEL[a.type]}</span>
-          <b style="margin-left:6px">${esc(a.title)}</b></div>
-        <div>
-          ${live ? `<button class="btn-o btn-sm" onclick="setCurrent(null)">중지</button>`
-                 : `<button class="btn-g btn-sm" onclick="setCurrent('${id}')">시작</button>`}
-          <button class="btn-o btn-sm" onclick="editAct('${id}')">수정</button>
-          <button class="btn-danger btn-sm" onclick="delAct('${id}')">삭제</button>
-        </div>
+      <div class="act-title"><span class="badge ${live?'live':''}">${live?'LIVE':TYPE_LABEL[a.type]}</span>
+        <span>${esc(a.title)}</span></div>
+      <div class="act-actions">
+        ${live ? `<button class="btn-o btn-sm" onclick="setCurrent(null)">중지</button>`
+               : `<button class="btn-s btn-sm" onclick="setCurrent('${id}')">시작</button>`}
+        <button class="btn-o btn-sm" onclick="editAct('${id}')">수정</button>
+        <button class="btn-danger btn-sm" onclick="delAct('${id}')">삭제</button>
       </div></div>`;
   }).join('') : '<p class="sub">아직 활동이 없습니다.</p>';
 }
@@ -357,7 +334,7 @@ function delAct(id){
 function hostResults(){
   if(resListener) resListener.off();
   const box=$('h-results');
-  $('live-badge').style.display = currentId? 'inline-block':'none';
+  $('live-badge').classList.toggle('hidden', !currentId);
   if(!currentId){ box.innerHTML='<p class="waiting">진행 중인 활동이 없습니다</p>'; return; }
   const a=acts[currentId]; if(!a) return;
   resListener = ref('responses/'+currentId);
@@ -398,7 +375,7 @@ function partCloud(a){
   cloudLimit = a.limit||1;
   box.innerHTML = `<div class="result-title">${esc(a.title)}</div>
     <div class="row"><input type="text" id="cw" class="grow" maxlength="20" placeholder="단어 입력 (기기당 ${cloudLimit}개)">
-    <button class="btn-g" onclick="sendWord()">보내기</button></div>
+    <button class="btn-p" onclick="sendWord()">보내기</button></div>
     <div id="p-res" class="mt"></div>`;
   $('cw').addEventListener('keydown', e=>{ if(e.key==='Enter') sendWord(); });
   partResListener = ref('responses/'+currentId+'/words');
@@ -417,7 +394,7 @@ function partQna(a){
   const box=$('p-body');
   box.innerHTML = `<div class="result-title">${esc(a.title)}</div>
     <textarea id="qt" rows="2" maxlength="300" placeholder="질문을 입력하세요"></textarea>
-    <button class="btn-g mt" onclick="sendQ()" style="margin-top:8px">질문 보내기</button>
+    <button class="btn-p" onclick="sendQ()" style="margin-top:10px">질문 보내기</button>
     <div id="p-res" class="mt"></div>`;
   partResListener = ref('responses/'+currentId+'/qna');
   partResListener.on('value', s=>{ const el=$('p-res'); if(el) el.innerHTML = renderQna(s.val()||{}, true); });
@@ -437,11 +414,11 @@ function renderResult(a, data, big){
   if(a.type==='poll'){
     const votes=data.votes||{}, counts=a.options.map(()=>0);
     Object.values(votes).forEach(v=>{ if(counts[v]!==undefined) counts[v]++; });
-    const total=counts.reduce((x,y)=>x+y,0)||0;
+    const total=counts.reduce((x,y)=>x+y,0)||0, max=Math.max(...counts);
     return `<p class="sub mb">응답 ${total}명</p>` + a.options.map((o,i)=>{
       const pct= total? Math.round(counts[i]/total*100):0;
       return `<div class="bar-row"><div class="bar-label"><span>${esc(o)}</span><b>${counts[i]}표 (${pct}%)</b></div>
-        <div class="bar-track"><div class="bar-fill c${i%6}" style="width:${pct}%"></div></div></div>`;
+        <div class="bar-track"><div class="bar-fill ${counts[i]===max?'':'dim'}" style="width:${pct}%"></div></div></div>`;
     }).join('');
   }
   if(a.type==='cloud') return renderCloud(data.words||{});
@@ -458,11 +435,10 @@ function renderCloud(words){
   const keys=Object.keys(freq);
   if(!keys.length) return '<p class="waiting">아직 제출된 단어가 없습니다</p>';
   const max=Math.max(...keys.map(k=>freq[k]));
-  const colors=['#3b5bdb','#12b886','#fd7e14','#be4bdb','#e64980','#15aabf','#f59f00'];
   keys.sort(()=>Math.random()-.5);
-  return '<div class="cloud">'+keys.map((k,i)=>{
-    const size=(0.9+2.2*(freq[k]/max)).toFixed(2);
-    return `<span style="font-size:${size}rem;color:${colors[i%colors.length]}">${esc(k)}</span>`;
+  return '<div class="cloud">'+keys.map(k=>{
+    const r=freq[k]/max, size=(0.9+2.2*r).toFixed(2), op=(0.5+0.5*r).toFixed(2);
+    return `<span style="font-size:${size}rem;opacity:${op}">${esc(k)}</span>`;
   }).join('')+'</div>';
 }
 function renderQna(qna, likable){
