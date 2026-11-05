@@ -8,7 +8,7 @@ Firebase Realtime Database 무료(Spark) 플랜 + GitHub Pages로 동작하며 �
 | 도구 | 경로 | 기능 |
 |---|---|---|
 | 라이브 투표 | [`/vote`](https://kkonoo.github.io/edu_tools/vote/)  | 찬반·객관식 투표(실시간 막대그래프), 워드클라우드, Q&A(좋아요 정렬), 발표 화면 |
-| 라이브 퀴즈 | [`/quiz`](https://kkonoo.github.io/edu_tools/quiz/) | 정답 채점, 점수 집계 |
+| 라이브 퀴즈 | [`/quiz`](https://kkonoo.github.io/edu_tools/quiz/) | 정답 채점, 점수 집계, 문제 그림(파일 선택·캡처 붙여넣기) |
 | 토론 도우미 | [`/debate`](https://kkonoo.github.io/edu_tools/debate/) | 랜덤 조 편성(조 안 번호 = 발언 순서), 단계별 발언 타이머(순서·시간 편집 가능) |
 
 ## 사용법
