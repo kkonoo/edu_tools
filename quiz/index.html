@@ -13,6 +13,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   .inline-field > input, .inline-field > select { font-weight: 500; }
+  .result-title, .s-q { white-space: pre-line; } /* 문제 줄바꿈 그대로 표시 */
   /* 발표 화면: 문제 보기 · 결과 (공용 부분은 assets/style.css) */
   .s-opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .s-opt {
@@ -104,7 +105,7 @@
         <div class="card">
           <h2>문항 만들기</h2>
           <div class="form">
-            <input type="text" id="new-q" placeholder="문제 입력">
+            <textarea id="new-q" rows="3" placeholder="문제 입력 (Enter로 줄바꿈)"></textarea>
             <textarea id="new-opts" rows="4" placeholder="보기 (한 줄에 하나, 2~6개)"></textarea>
             <div class="row">
               <label class="inline-field">정답 번호 <input type="number" id="new-ans" min="1" max="6" value="1" class="num"></label>
