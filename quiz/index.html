@@ -19,6 +19,14 @@
   /* 발표 화면: 그림은 남는 높이만큼만 차지해서 스크롤 없이 한 화면에 */
   .screen.has-img { display: flex; flex-direction: column; height: 100vh; }
   .screen.has-img .q-img { flex: 1 1 0; min-height: 120px; width: 100%; max-height: none; margin-bottom: 32px; object-fit: contain; object-position: left center; border-radius: 0; }
+  /* 그림이 있는데 문제·보기가 길면 글씨를 한 단계 줄여 그림 자리를 넓혀요 */
+  .screen.has-img .s-q.long { margin-bottom: 24px; font-size: clamp(22px, 2vw, 32px); }
+  .screen.has-img .s-opts.long .s-opt { min-height: 64px; padding: 12px 18px; gap: 14px; font-size: clamp(17px, 1.4vw, 22px); }
+  .screen.has-img .s-opts.long .s-num { width: 40px; height: 40px; border-radius: 10px; font-size: 20px; }
+  /* 그림을 누르면 전체 화면으로 크게 (다시 누르거나 Esc로 닫기) */
+  .q-img { cursor: zoom-in; }
+  #zoom { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .9); cursor: zoom-out; }
+  #zoom img { width: calc(100vw - 32px); height: calc(100vh - 32px); object-fit: contain; }
   .img-box { display: flex; align-items: flex-start; gap: 10px; }
   .img-box img { max-width: 160px; max-height: 120px; border: 1px solid var(--line); border-radius: 10px; }
   .tag.pic { background: var(--surface-2); color: var(--muted); }
@@ -194,6 +202,7 @@
   </main>
 </div>
 
+<div id="zoom" class="hidden" onclick="closeZoom()"><img id="zoom-img" alt="문제 그림 크게 보기"></div>
 <div id="toast"></div>
 
 <script>
@@ -316,7 +325,7 @@ function enterAs(name){
   $('p-code').textContent=code;
   $('p-name').textContent=name;
   ref('players/'+clientId+'/score').on('value', s=>{ $('p-score').textContent=(s.val()||0)+'점'; });
-  ref('state').on('value', s=>{ state=s.val(); partBody(); });
+  ref('state').on('value', s=>{ state=s.val(); closeZoom(); partBody(); });
   show('scr-part');
 }
 
@@ -402,10 +411,13 @@ const imgs={};
 function qImg(qid, q, rerender){
   if(!q.img) return '';
   const k=qid+'_'+q.img;
-  if(typeof imgs[k]==='string') return imgs[k] ? `<img class="q-img" src="${esc(imgs[k])}" alt="문제 그림">` : '';
+  if(typeof imgs[k]==='string') return imgs[k] ? `<img class="q-img" src="${esc(imgs[k])}" alt="문제 그림" title="눌러서 크게 보기" onclick="zoomImg(this)">` : '';
   if(!imgs[k]) imgs[k]=ref('images/'+qid).get().then(s=>{ imgs[k]=s.val()||''; rerender(); });
   return null;
 }
+function zoomImg(el){ $('zoom-img').src=el.src; $('zoom').classList.remove('hidden'); }
+function closeZoom(){ $('zoom').classList.add('hidden'); }
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeZoom(); });
 function renderQList(){
   const ids=Object.keys(questions);
   $('q-list').innerHTML = ids.length? ids.map((id,idx)=>{
@@ -502,7 +514,7 @@ function openScreen(c){
     ref('players').on('value', s=>{ players=s.val()||{}; screenRender(); });
     ref('round').on('value', ()=>{ lastQid = (state&&state.qid)||null; }); // 초기화 후엔 Q1부터
     ref('state').on('value', s=>{
-      state=s.val();
+      state=s.val(); closeZoom();
       if(state&&state.qid) lastQid=state.qid;
       if(sAnsRef){ sAnsRef.off(); sAnsRef=null; }
       sAnswers={};
@@ -528,11 +540,11 @@ function screenRender(){
   const q=questions[state.qid]; if(!q){ box.innerHTML=''; return; }
   const ids=Object.keys(questions), img=qImg(state.qid, q, screenRender)||'';
   const head=`<div class="s-meta"><span>Q${ids.indexOf(state.qid)+1} / ${ids.length}</span><span>참여 코드 <b>${esc(code)}</b></span></div>
-    <h1 class="s-q">${esc(q.text)}</h1>${img}`;
+    <h1 class="s-q${q.text.length>60?' long':''}">${esc(q.text)}</h1>${img}`;
   const scr = img? 'screen has-img' : 'screen';
   if(state.phase==='ans'){
     box.innerHTML=`<div class="${scr}">${head}
-      <div class="s-opts">${q.options.map((o,i)=>`<div class="s-opt"><span class="s-num">${i+1}</span>${esc(o)}</div>`).join('')}</div>
+      <div class="s-opts${q.options.some(o=>o.length>30)?' long':''}">${q.options.map((o,i)=>`<div class="s-opt"><span class="s-num">${i+1}</span>${esc(o)}</div>`).join('')}</div>
       <div class="s-foot"><span>제출 <b>${Object.keys(sAnswers).length}</b> / ${np}명</span><span id="s-time"></span></div></div>`;
     const tick=()=>{ const el=$('s-time'); if(el && state && state.t0) el.textContent='경과 '+Math.max(0,Math.floor((Date.now()+srvOffset-state.t0)/1000))+'초'; };
     tick(); sTimer=setInterval(tick,500);
