@@ -538,18 +538,26 @@ function screenRender(){
   if(state.phase==='board'){ box.innerHTML='<div class="screen"><h1 class="s-q">리더보드</h1>'+renderBoard()+'</div>'; return; }
   const q=questions[state.qid]; if(!q){ box.innerHTML=''; return; }
   const ids=Object.keys(questions), img=qImg(state.qid, q, screenRender)||'';
-  const head=`<div class="s-meta"><span>Q${ids.indexOf(state.qid)+1} / ${ids.length}</span><span>참여 코드 <b>${esc(code)}</b></span></div>
-    <h1 class="s-q${q.text.length>60?' long':''}">${esc(q.text)}</h1>${img}`;
+  const head=`<div class="s-head"><div><div class="s-meta">Q${ids.indexOf(state.qid)+1} / ${ids.length}</div>
+    <h1 class="s-q${q.text.length>60?' long':''}">${esc(q.text)}</h1></div><div class="s-qr-slot"></div></div>${img}`;
   const scr = img? 'screen has-img' : 'screen';
   if(state.phase==='ans'){
     box.innerHTML=`<div class="${scr}">${head}
       <div class="s-opts${q.options.some(o=>o.length>30)?' long':''}">${q.options.map((o,i)=>`<div class="s-opt"><span class="s-num">${i+1}</span>${esc(o)}</div>`).join('')}</div>
       <div class="s-foot"><span>제출 <b>${Object.keys(sAnswers).length}</b> / ${np}명</span><span id="s-time"></span></div></div>`;
+    putQr(box);
     const tick=()=>{ const el=$('s-time'); if(el && state && state.t0) el.textContent='경과 '+Math.max(0,Math.floor((Date.now()+srvOffset-state.t0)/1000))+'초'; };
     tick(); sTimer=setInterval(tick,500);
     return;
   }
   box.innerHTML=`<div class="${scr}">${head}<div class="s-result"><div>${resultBars(q, sAnswers, true)}</div><div>${renderFastest(q, sAnswers)}</div></div></div>`;
+  putQr(box);
+}
+// 발표 화면 오른쪽 위 참여 QR: 한 번만 만들고 다시 그릴 때마다 옮겨 붙여요 (응답이 올 때마다 새로 만들면 깜빡여서)
+let sQr=null;
+function putQr(box){
+  if(!sQr){ sQr=document.createElement('div'); sQr.className='qr'; new QRCode(sQr, {text:baseUrl()+'?s='+code, width:256, height:256}); }
+  box.querySelector('.s-qr-slot').replaceWith(sQr);
 }
 function nextQ(){
   const ids=Object.keys(questions), i = lastQid? ids.indexOf(lastQid)+1 : 0;

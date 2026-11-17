@@ -376,10 +376,16 @@ function screenRender(){
     new QRCode($('s-qr'), {text:url, width:480, height:480});
     return;
   }
-  const head=`<div class="s-meta"><span>${TYPE_LABEL[a.type]}</span><span>참여 코드 <b>${esc(code)}</b></span></div>
-    <h1 class="s-q">${esc(a.title)}</h1>`;
+  const head=`<div class="s-head"><div><div class="s-meta">${TYPE_LABEL[a.type]}</div>
+    <h1 class="s-q">${esc(a.title)}</h1></div><div class="s-qr-slot"></div></div>`;
   sResRef=ref('responses/'+currentId);
-  sResRef.on('value', s=>{ box.innerHTML=`<div class="screen">${head}${renderResult(a, s.val()||{}, true)}</div>`; });
+  sResRef.on('value', s=>{ box.innerHTML=`<div class="screen">${head}${renderResult(a, s.val()||{}, true)}</div>`; putQr(box); });
+}
+// 발표 화면 오른쪽 위 참여 QR: 한 번만 만들고 다시 그릴 때마다 옮겨 붙여요 (응답이 올 때마다 새로 만들면 깜빡여서)
+let sQr=null;
+function putQr(box){
+  if(!sQr){ sQr=document.createElement('div'); sQr.className='qr'; new QRCode(sQr, {text:baseUrl()+'?s='+code, width:256, height:256}); }
+  box.querySelector('.s-qr-slot').replaceWith(sQr);
 }
 function nextAct(){
   const ids=Object.keys(acts), i = lastId? ids.indexOf(lastId)+1 : 0;
