@@ -22,6 +22,7 @@
   --accent-line: #C8D9F4;
   --on-accent: #FFFFFF;
   --bar-2: #A8C1E9;           /* 1등이 아닌 막대 — 주조색의 옅은 명도 */
+  --cloud-1: #2a78d6; --cloud-2: #eb6834; --cloud-3: #6250d6; --cloud-4: #008300;   /* 워드클라우드 네 색 (아래 설명) */
   --good: #1E8E5A;
   --good-soft: #E6F4EC;
   --warn: #B26A00;
@@ -41,6 +42,7 @@
   --text: #E6EAF2; --body: #C2C9D6; --muted: #8F9AAD; --faint: #5F6B80;
   --accent: #6E9FFF; --accent-soft: #1B2945; --accent-line: #2B3B57; --on-accent: #0B1220;
   --bar-2: #3D5789;
+  --cloud-1: #3987e5; --cloud-2: #d95926; --cloud-3: #9085e9; --cloud-4: #0ca30c;
   --good: #4CC98A; --good-soft: #15302A; --warn: #F2B544; --bad: #FF6B6F; --bad-soft: #3A1A1C;
   --header-bg: #121926; --shadow: none;
   color-scheme: only dark;
@@ -251,9 +253,14 @@ input.code::placeholder { letter-spacing: 0; }
   background: var(--accent); box-shadow: 0 0 0 6px var(--accent-soft); animation: pulse 1.6s infinite;
 }
 
-/* 워드클라우드: 한 색, 많이 나온 단어일수록 크고 진하게 */
+/* 워드클라우드: 제출 순서대로 놓고 파랑→주황→보라→초록을 돌려 가며 칠해요 → 이웃한 답끼리 늘 색이 달라요.
+   많이 나온 답일수록 크게. 네 색은 밝은·어두운 화면 모두 글자로 읽히고(대비 3:1 이상) 이웃 색끼리 색각이상이어도 구별돼요 */
 .cloud { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 18px; min-height: 160px; padding: 20px 8px; }
-.cloud span { color: var(--accent); font-weight: 700; line-height: 1.15; letter-spacing: -.02em; }
+.cloud span { font-weight: 700; line-height: 1.15; letter-spacing: -.02em; }
+.cloud span:nth-child(4n+1) { color: var(--cloud-1); }
+.cloud span:nth-child(4n+2) { color: var(--cloud-2); }
+.cloud span:nth-child(4n+3) { color: var(--cloud-3); }
+.cloud span:nth-child(4n) { color: var(--cloud-4); }
 
 /* Q&A */
 .q-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
