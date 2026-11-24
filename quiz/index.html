@@ -21,6 +21,7 @@
   /* 그림이 있는데 문제·보기가 길면 글씨를 한 단계 줄여 그림 자리를 넓혀요 */
   .screen.has-img .s-q.long { margin-bottom: 24px; font-size: clamp(22px, 2vw, 32px); }
   .screen.has-img .s-opts.long .s-opt { min-height: 64px; padding: 12px 18px; gap: 14px; font-size: clamp(17px, 1.4vw, 22px); }
+  .screen.has-img .q-desc { margin-bottom: 24px; font-size: clamp(18px, 1.5vw, 24px); }   /* 그림이 있으면 보조 설명도 한 단계 작게 */
   .screen.has-img .s-opts.long .s-num { width: 40px; height: 40px; border-radius: 10px; font-size: 20px; }
   /* 그림을 누르면 전체 화면으로 크게 (다시 누르거나 Esc로 닫기) */
   .q-img { cursor: zoom-in; }
@@ -121,6 +122,7 @@
           <h2>문항 만들기</h2>
           <div class="form">
             <textarea id="new-q" rows="3" placeholder="문제 입력 (Enter로 줄바꿈)" onpaste="pasteImg(event)"></textarea>
+            <textarea id="new-desc" rows="2" placeholder="보조 설명 (선택 · 문제 아래 회색 글씨로 나와요)"></textarea>
             <div class="row">
               <button class="btn-o btn-sm" onclick="$('new-img').click()">그림 넣기</button>
               <span class="hint">캡처한 그림은 문제 칸에 붙여넣어도 돼요</span>
@@ -330,7 +332,7 @@ function enterAs(name){
 
 /* ---------- 문항 관리 (진행자) ---------- */
 function addQuestion(){
-  const q=$('new-q').value.trim();
+  const q=$('new-q').value.trim(), desc=$('new-desc').value.trim();
   const opts=$('new-opts').value.split('\n').map(s=>s.trim()).filter(Boolean);
   const ans=parseInt($('new-ans').value);
   const top=parseInt($('new-top').value)||3;
@@ -342,12 +344,12 @@ function addQuestion(){
   const img = formImgChanged ? (formImg ? Date.now() : null) : (prev.img || null); // 그림 버전 (바뀌면 다시 받게)
   const up = formImgChanged ? {['images/'+id]: formImg} : {};
   if(editingId){
-    up['questions/'+id] = {text:q, options:opts, answer:ans-1, top, ts:prev.ts||null, img};
+    up['questions/'+id] = {text:q, desc:desc||null, options:opts, answer:ans-1, top, ts:prev.ts||null, img};
     ref().update(up).then(()=>{ toast('수정했어요'); cancelEdit(); });
   } else {
-    up['questions/'+id] = {text:q, options:opts, answer:ans-1, top, ts:firebase.database.ServerValue.TIMESTAMP, img};
+    up['questions/'+id] = {text:q, desc:desc||null, options:opts, answer:ans-1, top, ts:firebase.database.ServerValue.TIMESTAMP, img};
     ref().update(up)
-      .then(()=>{ $('new-q').value=''; $('new-opts').value=''; $('new-ans').value=1; setFormImg(null, false); toast('문항을 추가했어요'); });
+      .then(()=>{ $('new-q').value=''; $('new-desc').value=''; $('new-opts').value=''; $('new-ans').value=1; setFormImg(null, false); toast('문항을 추가했어요'); });
   }
 }
 function editQ(id){
@@ -356,6 +358,7 @@ function editQ(id){
   setFormImg(null, false);
   if(q.img) ref('images/'+id).get().then(s=>{ if(editingId===id && !formImgChanged) setFormImg(s.val(), false); });
   $('new-q').value=q.text;
+  $('new-desc').value=q.desc||'';
   $('new-opts').value=(q.options||[]).join('\n');
   $('new-ans').value=String((q.answer||0)+1);
   $('new-top').value=String(q.top||3);
@@ -365,7 +368,7 @@ function editQ(id){
 }
 function cancelEdit(){
   editingId=null;
-  $('new-q').value=''; $('new-opts').value=''; $('new-ans').value=1; $('new-top').value='3';
+  $('new-q').value=''; $('new-desc').value=''; $('new-opts').value=''; $('new-ans').value=1; $('new-top').value='3';
   setFormImg(null, false);
   $('add-btn').textContent='문항 추가';
   $('cancel-btn').classList.add('hidden');
@@ -414,6 +417,7 @@ function qImg(qid, q, rerender){
   if(!imgs[k]) imgs[k]=ref('images/'+qid).get().then(s=>{ imgs[k]=s.val()||''; rerender(); });
   return null;
 }
+function descHtml(q){ return q.desc ? `<p class="q-desc">${esc(q.desc)}</p>` : ''; } // 문제 아래 회색 보조 설명
 function zoomImg(el){ $('zoom-img').src=el.src; $('zoom').classList.remove('hidden'); }
 function closeZoom(){ $('zoom').classList.add('hidden'); }
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeZoom(); });
@@ -459,7 +463,7 @@ function hostResults(){
   ansListener = ref('answers/'+state.qid);
   ansListener.on('value', s=>{
     const answers=s.val()||{}, total=Object.keys(answers).length;
-    box.innerHTML = `<div class="result-title">${esc(q.text)}</div>
+    box.innerHTML = `<div class="result-title">${esc(q.text)}</div>${descHtml(q)}
       <p class="sub mb">답변 ${total} / ${Object.keys(players).length}명 ${state.phase==='rev'?'· 정답 공개됨':''}</p>` +
       resultBars(q, answers, state.phase==='rev') + (state.phase==='rev' ? renderFastest(q, answers) : '');
   });
@@ -539,7 +543,7 @@ function screenRender(){
   const q=questions[state.qid]; if(!q){ box.innerHTML=''; return; }
   const ids=Object.keys(questions), img=qImg(state.qid, q, screenRender)||'';
   const head=`<div class="s-head"><div><div class="s-meta">Q${ids.indexOf(state.qid)+1} / ${ids.length}</div>
-    <h1 class="s-q${q.text.length>60?' long':''}">${esc(q.text)}</h1></div><div class="s-qr-slot"></div></div>${img}`;
+    <h1 class="s-q${q.text.length>60?' long':''}">${esc(q.text)}</h1>${descHtml(q)}</div><div class="s-qr-slot"></div></div>${img}`;
   const scr = img? 'screen has-img' : 'screen';
   if(state.phase==='ans'){
     box.innerHTML=`<div class="${scr}">${head}
@@ -577,7 +581,7 @@ function partBody(){
     const q=s.val(); if(!q) return;
     // 그림을 다 받은 뒤에 보기를 보여 줘요 (그림이 늦게 뜨면서 보기 버튼이 밀려 잘못 누르지 않게)
     const img=qImg(state.qid, q, partBody);
-    const title=`<div class="result-title">${esc(q.text)}</div>`+(img||'');
+    const title=`<div class="result-title">${esc(q.text)}</div>${descHtml(q)}`+(img||'');
     if(img===null){ box.innerHTML = title+'<p class="waiting">그림을 불러오는 중…</p>'; return; }
     const myAns = localStorage['qz_a_'+code+rk()+'_'+state.qid];
     if(state.phase==='ans'){
