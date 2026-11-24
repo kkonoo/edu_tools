@@ -239,6 +239,8 @@ input.code::placeholder { letter-spacing: 0; }
 
 /* ---------- 결과 ---------- */
 .result-title { margin-bottom: 16px; font-size: 24px; font-weight: 800; line-height: 1.35; letter-spacing: -.02em; white-space: pre-line; }   /* 질문 줄바꿈 그대로 */
+/* 질문 아래 보조 설명: 굵지 않은 회색 */
+.q-desc { margin: -8px 0 16px; color: var(--muted); font-size: 16px; line-height: 1.6; white-space: pre-line; }
 .section-title { margin: 28px 0 12px; font-size: 17px; font-weight: 700; }
 .bar-row + .bar-row { margin-top: 14px; }
 .bar-label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; font-size: 16px; }
@@ -316,6 +318,7 @@ body.screen-mode .topbar { display: none; }
 .s-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: start; }
 .s-head .qr { margin-bottom: 24px; padding: 10px; border-radius: 12px; }   /* 질문이 짧아 QR이 더 길 때 아래와 띄우기 */
 .s-head .qr img, .s-head .qr canvas { width: clamp(110px, 9vw, 168px); height: auto; }
+.screen .q-desc { margin: -16px 0 32px; font-size: clamp(20px, 1.9vw, 30px); line-height: 1.5; }
 .screen .sub { font-size: 20px; }
 .screen .bar-label { font-size: 24px; }
 .screen .bar-track, .screen .bar-fill { height: 44px; border-radius: 10px; }

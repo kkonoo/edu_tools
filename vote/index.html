@@ -99,6 +99,7 @@
               <option value="qna">Q&amp;A</option>
             </select>
             <textarea id="new-title" rows="2" placeholder="질문 / 제목 입력 (Enter로 줄바꿈)"></textarea>
+            <textarea id="new-desc" rows="2" placeholder="보조 설명 (선택 · 질문 아래 회색 글씨로 나와요)"></textarea>
             <textarea id="new-opts" rows="3" placeholder="선택지 (한 줄에 하나)">찬성&#10;반대</textarea>
             <div id="limit-row" class="row hidden">
               <label class="inline-field" for="new-limit">기기당 제출 개수</label>
@@ -265,6 +266,7 @@ function addActivity(){
   const t=$('new-type').value, title=$('new-title').value.trim();
   if(!title){ toast('질문/제목을 입력하세요'); return; }
   const act={ type:(t==='poll2'?'poll':t), title, ts:firebase.database.ServerValue.TIMESTAMP };
+  const desc=$('new-desc').value.trim(); if(desc) act.desc=desc;
   if(t==='cloud') act.limit=parseInt($('new-limit').value)||1;
   if(t==='poll'||t==='poll2'){
     const opts=$('new-opts').value.split('\n').map(s=>s.trim()).filter(Boolean);
@@ -275,7 +277,7 @@ function addActivity(){
     act.ts = (acts[editingId]&&acts[editingId].ts)||null;
     ref('activities/'+editingId).set(act).then(()=>{ toast('수정했어요'); cancelEdit(); });
   } else {
-    ref('activities').push(act).then(()=>{ $('new-title').value=''; toast('추가했어요'); });
+    ref('activities').push(act).then(()=>{ $('new-title').value=''; $('new-desc').value=''; toast('추가했어요'); });
   }
 }
 function editAct(id){
@@ -285,6 +287,7 @@ function editAct(id){
   $('new-type').value = a.type;
   onTypeChange();
   $('new-title').value=a.title;
+  $('new-desc').value=a.desc||'';
   if(a.type==='poll') $('new-opts').value=(a.options||[]).join('\n');
   if(a.type==='cloud') $('new-limit').value=String(a.limit||1);
   $('add-btn').textContent='수정 저장';
@@ -293,7 +296,7 @@ function editAct(id){
 }
 function cancelEdit(){
   editingId=null;
-  $('new-title').value='';
+  $('new-title').value=''; $('new-desc').value='';
   $('add-btn').textContent='추가';
   $('cancel-btn').classList.add('hidden');
 }
@@ -315,6 +318,7 @@ function listenCurrent(){
   });
 }
 const TYPE_LABEL={poll:'투표', cloud:'워드클라우드', qna:'Q&A'};
+function descHtml(a){ return a.desc ? `<p class="q-desc">${esc(a.desc)}</p>` : ''; } // 질문 아래 회색 보조 설명
 function renderActList(){
   const ids=Object.keys(acts);
   $('act-list').innerHTML = ids.length? ids.map(id=>{
@@ -350,7 +354,7 @@ function hostResults(){
   if(!currentId){ box.innerHTML='<p class="waiting">진행 중인 활동이 없어요</p>'; return; }
   const a=acts[currentId]; if(!a) return;
   resListener = ref('responses/'+currentId);
-  resListener.on('value', s=>{ box.innerHTML = `<div class="result-title">${esc(a.title)}</div>` + renderResult(a, s.val()||{}, true); });
+  resListener.on('value', s=>{ box.innerHTML = `<div class="result-title">${esc(a.title)}</div>${descHtml(a)}` + renderResult(a, s.val()||{}, true); });
 }
 
 /* ---------- 발표 화면 ---------- */
@@ -377,7 +381,7 @@ function screenRender(){
     return;
   }
   const head=`<div class="s-head"><div><div class="s-meta">${TYPE_LABEL[a.type]}</div>
-    <h1 class="s-q">${esc(a.title)}</h1></div><div class="s-qr-slot"></div></div>`;
+    <h1 class="s-q">${esc(a.title)}</h1>${descHtml(a)}</div><div class="s-qr-slot"></div></div>`;
   sResRef=ref('responses/'+currentId);
   sResRef.on('value', s=>{ box.innerHTML=`<div class="screen">${head}${renderResult(a, s.val()||{}, true)}</div>`; putQr(box); });
 }
@@ -408,7 +412,7 @@ function partBody(){
 }
 function partPoll(a){
   const box=$('p-body'), myVote = localStorage['lv_v_'+currentId+rk()];
-  box.innerHTML = `<div class="result-title">${esc(a.title)}</div>` +
+  box.innerHTML = `<div class="result-title">${esc(a.title)}</div>${descHtml(a)}` +
     a.options.map((o,i)=>`<button class="opt-btn ${String(i)===myVote?'sel':''}" onclick="vote(${i})">${esc(o)}</button>`).join('') +
     `<div id="p-res" class="mt"></div>`;
   if(myVote!==undefined){
@@ -425,7 +429,7 @@ function vote(i){
 function partCloud(a){
   const box=$('p-body');
   cloudLimit = a.limit||1;
-  box.innerHTML = `<div class="result-title">${esc(a.title)}</div>
+  box.innerHTML = `<div class="result-title">${esc(a.title)}</div>${descHtml(a)}
     <div class="row"><input type="text" id="cw" class="grow" maxlength="20" placeholder="단어 입력 (기기당 ${cloudLimit}개)">
     <button class="btn-p" onclick="sendWord()">보내기</button></div>
     <div id="p-res" class="mt"></div>`;
@@ -444,7 +448,7 @@ function sendWord(){
 }
 function partQna(a){
   const box=$('p-body');
-  box.innerHTML = `<div class="result-title">${esc(a.title)}</div>
+  box.innerHTML = `<div class="result-title">${esc(a.title)}</div>${descHtml(a)}
     <textarea id="qt" rows="2" maxlength="300" placeholder="질문을 입력하세요"></textarea>
     <button class="btn-p" onclick="sendQ()" style="margin-top:10px">질문 보내기</button>
     <div id="p-res" class="mt"></div>`;
